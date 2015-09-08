@@ -1,0 +1,263 @@
+'''
+Created by S. Henshaw 2 Sept. 2015
+
+Ortec Vendor ID: 2605  Product ID=31
+
+'''
+import os
+import sys
+from struct import pack
+import struct
+from usb1 import USBContext
+
+class ControlRegister(object):
+    regStruct={'control':           {'offset':0, 'length':1,'default':'/x01'},
+               'status':            {'offset':1, 'length':1,'default':''},
+               'width':             {'offset':2, 'length':1,'default':''},
+               'hv_act':            {'offset':3, 'length':1,'default':''},
+               'spare0':            {'offset':4, 'length':1,'default':''},
+               'insight_ctl':       {'offset':5, 'length':1,'default':'b'},
+               'aux_io':            {'offset':6, 'length':1,'default':''},
+               'aux_ctl':           {'offset':7, 'length':1,'default':''},
+               'ffcount':           {'offset':8, 'length':4,'default':''},
+               'fgain_act':         {'offset':12,'length':4,'default':''},
+               'fgain_set':         {'offset':16,'length':4,'default':''},
+               'lld':               {'offset':20,'length':4,'default':''},
+               'ltime_preset':      {'offset':24,'length':4,'default':''},
+               'ltime':             {'offset':28,'length':4,'default':''},
+               'rtime_preset':      {'offset':32,'length':4,'default':''},
+               'rtime':             {'offset':36,'length':4,'default':''},
+               'uld':               {'offset':40,'length':2,'default':''},
+               'hv_set':            {'offset':42,'length':2,'default':''},
+               'aux0_cnt':          {'offset':44,'length':4,'default':''},
+               'aux1_cnt':          {'offset':48,'length':4,'default':''},
+               'auxE_cnt':          {'offset':52,'length':4,'default':''},
+               'gain_stab_max':     {'offset':56,'length':2,'default':''},
+               'gain_stab_mid':     {'offset':58,'length':2,'default':''},
+               'gain_stab_min':     {'offset':60,'length':2,'default':''},
+               'offset_act':        {'offset':62,'length':2,'default':''},
+               'offset_set':        {'offset':64,'length':2,'default':''},
+               'offset_stab_max':   {'offset':66,'length':2,'default':''},
+               'offset_stab_mid':   {'offset':68,'length':2,'default':''},
+               'offset_stab_min':   {'offset':70,'length':2,'default':''},
+               'mem_size':          {'offset':72,'length':2,'default':''},
+               'mem_start':         {'offset':74,'length':2,'default':''},
+               'control_2':         {'offset':76,'length':1,'default':''},
+               'spare1':            {'offset':77,'length':3,'default':''}
+           }
+    defaults={'control': {'pha_mode':1,'acq_start':0,
+                          'enab_lt_pre':0,'enab_rt_pre':0,
+                          'enab_gain_stab':0,'enab_off_stab':0,
+                          'enab_hv':0,'mca_reset':0},
+               'status': {},
+               'width':     {},     
+               'hv_act':       {},  
+               'spare0':         {},
+               'insight_ctl':    {},
+               'aux_io':         {},
+               'aux_ctl':        {},
+               'ffcount':        {},
+               'fgain_act':      {},
+               'fgain_set':      {},
+               'lld':            {},
+               'ltime_preset':   {},
+               'ltime':          {},
+               'rtime_preset':   {},
+               'rtime':          {},
+               'uld':            {},
+               'hv_set':         {},
+               'aux0_cnt':       {},
+               'aux1_cnt':       {},
+               'auxE_cnt':       {},
+               'gain_stab_max':  {},
+               'gain_stab_mid':  {},
+               'gain_stab_min':  {},
+               'offset_act':     {},
+               'offset_set':     {},
+               'offset_stab_max':{},
+               'offset_stab_mid':{},
+               'offset_stab_min':{},
+               'mem_size':       {},
+               'mem_start':      {},
+               'control_2':      {},
+               'spare1':         {}
+           }
+
+    def __init__(self, bytes=''):
+        if bytes is not '':
+            if len(bytes) != 80:
+                raise RuntimeError("Invalid # bytes in Control Register Initial: %d"%len(bytes))
+            print 'Setting Control Register from bytes'
+            self._bytes=bytes
+        else:
+            print 'Setting Defaults in Control Register'
+            self._bytes=''
+            defaults={
+            self.setControl(mcaMode=1,start=0,enable_lt_preset=0,enable_rt_preset=0,enable_gain_stab=0,
+
+    def 
+
+            
+    def parseBytes(self,bytes):
+        print repr(bytes)
+        for key,val in self.regStruct.iteritems():
+            b=bytes[val['offset']:val['offset']+val['length']]
+            print key,val['offset'],repr(b)
+            if key is 'status':
+                print b, type(b)
+                for i in range(8):
+                    print (ord(b)>>i) & 1
+            
+
+
+class FPGA(object):
+    eP_SEND=8
+    eP_RECV=2
+
+    TIMEOUT=300
+    
+    CMD_SETCONTROL=0
+    CMD_SHOWCONTROL=chr(1)
+    def __init__(self,cnct):
+        print 'Constructing FPGA...'
+        self._cnct=cnct
+        self._controlRegister=ControlRegister(self.showControl())
+
+    def showControl(self):
+        self._cnct.bulkWrite(self.eP_SEND,self.CMD_SHOWCONTROL,self.TIMEOUT)
+        r=self._cnct.bulkRead(self.eP_RECV,80,self.TIMEOUT)
+        return r
+        
+    
+
+
+class MicroController(object):
+    #Microcontroller EndPoints  from ORTEC Docs
+    eP_SEND=1
+    eP_RECV=1
+
+    #Commands to send to MC that execute on FPGA
+    FPGA_INIT=0x0004
+    FPGA_LOAD=0x0005
+    FPGA_TEST=0x0006
+    FPGA_RESET=0x0011
+    FPGA_VERSION=0x0012
+
+    #USB Connection Timeout
+    TIMEOUT=300
+    
+    #firmware for FPGA
+    rbfFile=os.path.abspath('./digiBaseRH.rbf')
+
+    #Max Data Size (ORTEC driver requirement)
+    MAX_MSG_SIZE=65536
+
+    def __init__(self,cnct):
+        print 'Initializing MicroController'
+        if not os.path.isfile(self.rbfFile):
+            raise ValueError('Firware file Does Not Exist: %s'%self.rbfFile)
+        else:
+            self._cnct=cnct
+            #self._fpga=self.initializeFPGA()
+
+
+    def initializeFPGA(self):
+        while True:
+            try:
+                self.send(self.FPGA_TEST)
+                self.send(self.FPGA_RESET)
+                print 'FPGA is configured'
+                return FPGA(self._cnct)
+                break
+            except RuntimeError as e:
+                print e
+                self.send(self.FPGA_INIT)
+                with open(self.rbfFile,'rb') as f:
+                    self.send(self.FPGA_LOAD,data=f.read())
+                pass
+
+            
+    def send(self, command,rspLen=0,data=''):
+        '''
+        Message Structure to the MC is as follows:
+        ##################################### SEND #########################################
+        Offset      Name                Description
+        0           COMMAND             one of the fpga commands (see above) e.g. FPGA_INIT
+        1           RESPONSE LENGTH     length of response in bytes (typically 2)
+        2           NULL                This is always 0
+        3->N+4      DATA0-N             Optional Data to send (used for firmware)
+
+        USB sends commands in 64 byte packets.  If the send message length %64==0 then you
+        must send an additional zero length packet ('') to terminate the command
+        ################################### RECIEVE #######################################
+        Offset      Name         Description
+        0           ERR_MAC      Macro error code (0=success)
+        1           ERR_MIC      Micro error code (0=success)
+        2->N+2      DATA0-N      Optional Data to send (used for firmware)
+        ###################################################################################
+        '''
+        #Accounting for ERR_MAC & ERR_MIC in Response Length 
+        rspLen+=2
+
+        #Container for Data returned in response (will be returned
+        response=b''
+
+        #Packing the message to be sent
+        hdr=chr(command)
+        hdr+=pack('>H',rspLen)
+        hdr+=chr(0)
+
+        #Packing optional data into message (passed as argument)
+        dpkts=[data[i:i+self.MAX_MSG_SIZE] for i in range(0,len(data),self.MAX_MSG_SIZE)]
+
+        #Sending Packets and getting response
+        if len(dpkts)>0:
+            for i in dpkts:
+                msg=hdr+i
+                self._cnct.bulkWrite(self.eP_SEND,msg,self.TIMEOUT)
+                if len(msg)%64==0:
+                    self._cnct.bulkWrite(self.eP_SEND,b'',self.TIMEOUT)
+
+                recv=self._cnct.bulkRead(self.eP_RECV,rspLen,self.TIMEOUT)
+                if len(recv)<2:
+                    raise RuntimeError('MC Response invalid length: %s'%r.encode('hex'))
+                if ord(recv[0]) !=0 or ord(recv[1]) !=0:
+                    raise RuntimeError('MC Response Error:  MAC: %s, MIC: %s'%(ord(r[0]),ord(r[1])))
+                response+=recv[2:]
+        else:
+            self._cnct.bulkWrite(self.eP_SEND,hdr,self.TIMEOUT)
+            recv=self._cnct.bulkRead(self.eP_RECV,rspLen,self.TIMEOUT)
+            if len(recv)<2:
+                raise RuntimeError('MC Response invalid length: %s'%recv.encode('hex'))
+            if ord(recv[0]) !=0 or ord(recv[1]) !=0:
+                raise RuntimeError('MC Response Error:  MAC: %s, MIC: %s'%(ord(recv[0]),ord(recv[1])))
+            response+=recv[2:]
+
+        return response
+    
+                    
+            
+
+    
+class digibase(object):
+    vID=2605
+    pID=31
+    def __init__(self):
+        print 'Constructing digiBase'
+        self._usbCon=USBContext()
+        self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
+        if self._dev is  None:
+            raise RuntimeError("No Digibase Connected")
+        print 'Connected to Digibase S/N: ',self._dev.getSerialNumber()
+        self._cnct=self._dev.open()
+        self._cnct.claimInterface(0)
+        self._microCon=MicroController(self._cnct)
+        self._fpga=self._microCon.initializeFPGA()
+        
+        
+    
+
+if __name__=="__main__":
+    print 'Hello World'
+    db=digibase()
+    
