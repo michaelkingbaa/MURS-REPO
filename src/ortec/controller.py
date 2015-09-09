@@ -277,7 +277,7 @@ class MicroController(object):
     FPGA_VERSION=0x0012
 
     #USB Connection Timeout
-    TIMEOUT=300
+    TIMEOUT=800
     
     #firmware for FPGA
     rbfFile=os.path.abspath('./digiBaseRH.rbf')
