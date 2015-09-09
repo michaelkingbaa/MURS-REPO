@@ -343,6 +343,7 @@ class MicroController(object):
         #Packing optional data into message (passed as argument)
         dpkts=[data[i:i+self.MAX_MSG_SIZE] for i in range(0,len(data),self.MAX_MSG_SIZE)]
 
+        print 'I got to here'
         #Sending Packets and getting response
         if len(dpkts)>0:
             for i in dpkts:
@@ -365,7 +366,7 @@ class MicroController(object):
             if ord(recv[0]) !=0 or ord(recv[1]) !=0:
                 raise RuntimeError('MC Response Error:  MAC: %s, MIC: %s'%(ord(recv[0]),ord(recv[1])))
             response+=recv[2:]
-
+            print response
         return response
     
                     
