@@ -388,6 +388,9 @@ class digibase(object):
         self._microCon=MicroController(self._cnct)
         self._fpga=self._microCon.initializeFPGA()
 
+    def set_hv(self,volts):
+        self._fpga.set_hv(volts)
+
     def start_acquisition(self):
         self._fpga.start_acq()
         

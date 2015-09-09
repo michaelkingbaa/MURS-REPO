@@ -8,6 +8,7 @@ def main():
     det=digibase()
     app=QtGui.QApplication(sys.argv)
     ag=plt.AppGui()
+    det.set_hv(987)
     det.clear_spectrum()
     det.start_acquisition()
     for i in range(100):
@@ -16,6 +17,7 @@ def main():
         det.clear_spectrum()
         print 'time to get: ',(time.time()-x)
         ag.update(sp)
+        #This adjusts the acquisition period
         time.sleep(.1)
 
 
