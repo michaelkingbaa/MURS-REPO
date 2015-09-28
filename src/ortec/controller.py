@@ -11,23 +11,9 @@ import struct
 from usb1 import USBContext
 import time
 import numpy as np
-'''
-!!!!!!!!!!!!!!!! IMPORTANT NOTE   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+from logger import DataLogger
+import argparse
 
-Need to make a BitRegister Class that handles 1 Byte and can 
-set the bits appropriately
-
-Need to make a ByteRegister Class that just handles setting 
-some # of bytes appropriately. 
-
-Then have Control Register instantiate either of the above for 
-each of the sections in the doc.
-
-Make each register type have the same get_bytes() method so that 
-it can be iterated over to make the entire Control Register
-
-
-'''
 class BitRegister(object):
     def __init__(self,name,initByte):
         #initByte is a bytestring
@@ -373,16 +359,18 @@ class MicroController(object):
             
 
     
-class digibase(object):
+class DigiBase(object):
     vID=2605
     pID=31
-    def __init__(self):
-        print 'Constructing digiBase'
-        self._usbCon=USBContext()
-        self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
-        if self._dev is  None:
-            raise RuntimeError("No Digibase Connected")
-        print 'Connected to Digibase S/N: ',self._dev.getSerialNumber()
+    def __init__(self,sn=None,dev):
+        print 'Constructing digiBase object with S/N: {0}'.format(sn)
+        #self._usbCon=USBContext()
+        #self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
+        #if self._dev is  None:
+        #    raise RuntimeError("No Digibase Connected")
+
+        #print 'Connected to Digibase S/N: ',self._dev.getSerialNumber()
+        self._dev=dev
         self._cnct=self._dev.open()
         self._cnct.claimInterface(0)
         self._microCon=MicroController(self._cnct)
@@ -405,14 +393,104 @@ class digibase(object):
     def clear_spectrum(self):
         self._fpga.clear_data()
 
-if __name__=="__main__":
-    print 'Hello World'
-    db=digibase()
-    db.start_acquisition()
-    for i in range(10):
-        d=db.get_spectrum()
-        #db.clear_spectrum()
-        print len(d),d[50:60],type(d[50])
-        time.sleep(1)
 
+class DigiBaseController(object):
+    vID=2605
+    pID=31
+    def __init__(self):
+        self._dets={}
+        self._acquireFlag=False
+        self._usbCon=USBContext()
+        self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
+        if self._dev is  None:
+            raise RuntimeError("No Digibase Connected")
+        else:
+            for d in self._dev:
+                sn=d.getSerialNumber()
+                self._dets[sn]=DigiBase(sn)
+
+    def start_acquisition(self):
+        t=time.time()
+        self._acquireFlag=True
+        for det in self._dets.values():
+            det.start_acquisition()
+        return t
+
+    def clear_sample(self):
+        for det in self._dets.values():
+            det.clear_spectrum()
+    
+    def getSample(self,duration):
+        if not self._acquireFlag:
+            self.start_acquisition()
+
+        st=time.time()
+        self.clear_sample()
+        time.sleep(duration)
+        sp={}
+        for sn,det in self._dets.items():
+            sp[sn]={}
+            sp[sn]['time']=st
+            sp[sn]['spectrum']=np.array(det.get_spectrum())
+        return sp
+    
+if __name__=="__main__":
+    minAcqTime=1#seconds
+    maxAcqTime=30*3600#seconds
+
+    defaultSamplePeriod=1#seconds
+#    defaultLogPeriod=5*60#seconds
+    defaultLogPeriod=60#seconds
+    
+    ##################### Parsing Command Line Arguments   ##############################
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t","--time",type=int,help="Total Acquisition time in seconds (must be integer)")
+    parser.add_argument("-d","--sample_duration",type=int,help="Time Period for each sample in seconds (must be integer)")
+    parser.add_argument("-f","--file",type=str,help="Name of data file (default is DataLog_[timestamp].h5")
+    #    parser.add_argument("-g","--graphics",help="Turn on graphics",action="store_true")
+    args=parser.parse_args()
+
+    ############################## Setting Value based on args ####################
+    if not args.time:
+        raise RuntimeError('Must provide time to acquire in seconds using -t')
+    else:
+        if args.time >= minAcqTime and args.time <= maxAcqTime:
+            acqTime=args.time
+        else:
+            raise RuntimeError('time must be between {0} - {1} seconds, set using -t '.format(minAcqTime,maxAcqTime))
+    print '############################## Run Setup ####################'
+    if not args.sample_duration:
+        print 'Sample Duration set to default of {0} seconds!'.format(defaultSamplePeriod)
+        sampleDuration=defaultSamplePeriod
+    else:
+        if args.sample_duration<acqTime:
+            sampleDuration=args.sample_duration
+        else:
+            raise RuntimeError('Sample Duration (-d) must be less than Acquisition Time (-t)')
+
+    if args.file:
+        fileName=args.file
+    else:
+        fileName=None
+        
+        
+    nSamples=int(acqTime*1.0/sampleDuration)
+    nLogSamples=max(int(defaultLogPeriod/sampleDuration),1)
+    print 'Collecting {0} samples of length {1}'.format(nSamples,sampleDuration)
+    print 'Logging data every {0} samples = {1} seconds'.format(nLogSamples,defaultLogPeriod)
+
+
+
+
+
+    ######################### Initializing Objects #################################
+    dbc=DigiBaseController()
+
+    dLog=DataLogger()
+    
+    dbc.start_acquisition()
+    for s in range(nSamples):
+        print 'Acquiring Sample {0}'.format(s)
+        sample=dbc.getSample(sampleDuration)
+        dLog.logSample(sample)
     
