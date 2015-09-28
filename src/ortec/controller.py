@@ -152,6 +152,12 @@ class ControlRegister(object):
                         ByteRegister('spare_1',chr(0)*3)]
         return 
 
+    def getSettings(self):
+        settings={}
+        for i in self._regName:
+            settings[i]=self._byteList[i]
+        return settings
+    
     def set_hv_actual(self,volts):
         hvsetting=int(volts/1.25)
         index=self._regName.index('hv_set')
@@ -214,6 +220,12 @@ class FPGA(object):
         r=self._cnct.bulkRead(self.eP_RECV,80,self.TIMEOUT)
         return r
 
+    def getRegisterSettings(self):
+        tmp=ControlRegister(self._read_control_register())
+        settings=tmp.getSettings()
+        return settings
+
+        
     def write_control_register(self):
         tmp=self.read_control_register()
         cr=self._controlRegister.get_byte_string()
@@ -379,6 +391,9 @@ class DigiBase(object):
     def set_hv(self,volts):
         self._fpga.set_hv(volts)
 
+    def get_settings(self):
+        return self._fpga.getRegisterSettings()
+    
     def start_acquisition(self):
         self._fpga.start_acq()
         
@@ -432,6 +447,9 @@ class DigiBaseController(object):
             sp[sn]={}
             sp[sn]['time']=st
             sp[sn]['spectrum']=np.array(det.get_spectrum())
+            settings=det.get_settings()
+            for key,value in settings.items():
+                sp[sn][key]=value
         return sp
     
 if __name__=="__main__":
