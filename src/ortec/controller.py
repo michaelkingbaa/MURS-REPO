@@ -423,6 +423,7 @@ class DigiBaseController(object):
             raise RuntimeError("No Digibase Connected")
         else:
             print 'Recieved USB Connection to: ',self._dev
+            print 'SN: 'self._dev.getSerialNumber()
             for d in self._dev:
                 print 'Getting Serial Number and Constructing Digibase for: ',d
                 sn=d.getSerialNumber()
