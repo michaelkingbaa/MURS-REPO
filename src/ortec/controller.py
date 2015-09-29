@@ -418,18 +418,19 @@ class DigiBaseController(object):
         self._dets={}
         self._acquireFlag=False
         self._usbCon=USBContext()
-        self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
-        if self._dev is  None:
+        devlist=self.usbCon.getDeviceList()
+        self._dev={}
+        for dev in devlist:
+            if dev.getVendorID() == vID and dev.getProductID() == pID:
+                sn=dev.getSerialNumber()
+                self.dev[sn]=dev
+
+        if self._dev.keys() is  None:
             raise RuntimeError("No Digibase Connected")
         else:
-            print 'Recieved USB Connection to: ',self._dev
-            sn=self._dev.getSerialNumber()
-            print 'SN: ',sn
-            self._dets[sn]=DigiBase(sn,self._dev)
-            #for d in self._dev:
-            #    print 'Getting Serial Number and Constructing Digibase for: ',d
-            #    sn=d.getSerialNumber()
-            #    self._dets[sn]=DigiBase(sn)
+            for sn,dev in self._dev.items():
+                print 'Getting Serial Number and Constructing Digibase for: ',sn
+                self._dets[sn]=DigiBase(sn,dev)
 
     def start_acquisition(self):
         t=time.time()
@@ -454,9 +455,9 @@ class DigiBaseController(object):
             sp[sn]={}
             sp[sn]['time']=st
             sp[sn]['spectrum']=np.array(det.get_spectrum())
-            settings=det.get_settings()
-            for key,value in settings.items():
-                sp[sn][key]=value
+            #settings=det.get_settings()
+            #for key,value in settings.items():
+            #    sp[sn][key]=value
         return sp
     
 if __name__=="__main__":
