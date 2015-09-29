@@ -421,7 +421,7 @@ class DigiBaseController(object):
         devlist=self._usbCon.getDeviceList()
         self._dev={}
         for dev in devlist:
-            if dev.getVendorID() == vID and dev.getProductID() == pID:
+            if dev.getVendorID() == self.vID and dev.getProductID() == self.spID:
                 sn=dev.getSerialNumber()
                 self.dev[sn]=dev
 
