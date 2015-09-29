@@ -424,10 +424,11 @@ class DigiBaseController(object):
         else:
             print 'Recieved USB Connection to: ',self._dev
             print 'SN: ',self._dev.getSerialNumber()
-            for d in self._dev:
-                print 'Getting Serial Number and Constructing Digibase for: ',d
-                sn=d.getSerialNumber()
-                self._dets[sn]=DigiBase(sn)
+            self._dets[sn]=DigiBase(sn,self._dev)
+            #for d in self._dev:
+            #    print 'Getting Serial Number and Constructing Digibase for: ',d
+            #    sn=d.getSerialNumber()
+            #    self._dets[sn]=DigiBase(sn)
 
     def start_acquisition(self):
         t=time.time()
