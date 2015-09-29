@@ -374,7 +374,7 @@ class MicroController(object):
 class DigiBase(object):
     vID=2605
     pID=31
-    def __init__(self,sn=None,dev):
+    def __init__(self,sn=None,dev=None):
         print 'Constructing digiBase object with S/N: {0}'.format(sn)
         #self._usbCon=USBContext()
         #self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
@@ -382,6 +382,8 @@ class DigiBase(object):
         #    raise RuntimeError("No Digibase Connected")
 
         #print 'Connected to Digibase S/N: ',self._dev.getSerialNumber()
+        if sn is None or dev is None:
+            raiseRuntimeError('DigiBase() must have sn an dev in constructor')
         self._dev=dev
         self._cnct=self._dev.open()
         self._cnct.claimInterface(0)
@@ -465,7 +467,9 @@ if __name__=="__main__":
     parser.add_argument("-t","--time",type=int,help="Total Acquisition time in seconds (must be integer)")
     parser.add_argument("-d","--sample_duration",type=int,help="Time Period for each sample in seconds (must be integer)")
     parser.add_argument("-f","--file",type=str,help="Name of data file (default is DataLog_[timestamp].h5")
+    parser.add_argument("-c","--check",help="Check to see if Digibases are connected",action="store_true")
     #    parser.add_argument("-g","--graphics",help="Turn on graphics",action="store_true")
+
     args=parser.parse_args()
 
     ############################## Setting Value based on args ####################
@@ -505,10 +509,11 @@ if __name__=="__main__":
     dbc=DigiBaseController()
 
     dLog=DataLogger()
-    
-    dbc.start_acquisition()
-    for s in range(nSamples):
-        print 'Acquiring Sample {0}'.format(s)
-        sample=dbc.getSample(sampleDuration)
-        dLog.logSample(sample)
+
+    if not args.check:
+        dbc.start_acquisition()
+        for s in range(nSamples):
+            print 'Acquiring Sample {0}'.format(s)
+            sample=dbc.getSample(sampleDuration)
+            dLog.logSample(sample)
     
