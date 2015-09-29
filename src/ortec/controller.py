@@ -69,7 +69,7 @@ class ControlRegister(object):
         if bytes is not '':
             if len(bytes) != 80:
                 raise RuntimeError("Invalid # bytes in Control Register Initial: %d"%len(bytes))
-            print 'Setting Control Register from bytes'
+#            print '\t\tSetting Control Register from bytes'
             self.set_from_bytes(bytes)
             self._regName=[i.get_name() for i in self._byteList]
             return 
@@ -195,17 +195,17 @@ class FPGA(object):
     CMD_SHOWDATA=chr(128)
     
     def __init__(self,cnct):
-        print 'Constructing FPGA...'
+#        print '\tConstructing FPGA...'
         self._cnct=cnct
 
         #Getting Initial Values from the FPGA
         self._controlRegister=ControlRegister(self.read_control_register())
-        print 'Initial Values from the FPGA:'
-        print repr(self._controlRegister.get_byte_string())
+        #print 'Initial Values from the FPGA:'
+        #print repr(self._controlRegister.get_byte_string())
 
-        print 'Setting Defaults: ',
+#        print '\tSetting Defaults'
         self._controlRegister.set_defaults()
-        print repr(self._controlRegister.get_byte_string())
+        #print repr(self._controlRegister.get_byte_string())
 
         #Setting the Appropriate Settings
         self._controlRegister.set_enable_hv(1)
@@ -284,7 +284,7 @@ class MicroController(object):
     MAX_MSG_SIZE=65536
 
     def __init__(self,cnct):
-        print 'Initializing MicroController'
+#        print '\tInitializing MicroController'
         if not os.path.isfile(self.rbfFile):
             raise ValueError('Firware file Does Not Exist: %s'%self.rbfFile)
         else:
@@ -297,11 +297,11 @@ class MicroController(object):
             try:
                 self.send(self.FPGA_TEST)
                 self.send(self.FPGA_RESET)
-                print 'FPGA is configured'
+#                print '\tFPGA is configured'
                 return FPGA(self._cnct)
                 break
             except RuntimeError as e:
-                print e
+                print 'initalize FPGA Exception: ', e
                 self.send(self.FPGA_INIT)
                 with open(self.rbfFile,'rb') as f:
                     self.send(self.FPGA_LOAD,data=f.read())
@@ -341,7 +341,7 @@ class MicroController(object):
         #Packing optional data into message (passed as argument)
         dpkts=[data[i:i+self.MAX_MSG_SIZE] for i in range(0,len(data),self.MAX_MSG_SIZE)]
 
-        print 'I got to here'
+
         #Sending Packets and getting response
         if len(dpkts)>0:
             for i in dpkts:
@@ -364,7 +364,6 @@ class MicroController(object):
             if ord(recv[0]) !=0 or ord(recv[1]) !=0:
                 raise RuntimeError('MC Response Error:  MAC: %s, MIC: %s'%(ord(recv[0]),ord(recv[1])))
             response+=recv[2:]
-            print response
         return response
     
                     
@@ -415,17 +414,21 @@ class DigiBaseController(object):
     vID=2605
     pID=31
     def __init__(self):
+        print 'Constructing DigiBaseController()'
         self._dets={}
         self._acquireFlag=False
         self._usbCon=USBContext()
         devlist=self._usbCon.getDeviceList()
         self._dev={}
+        print 'Found {0} USB Connections...Scanning for Digibases'.format(len(devlist))
         for dev in devlist:
+            #print 'Ven. ID {0}  Prod ID: {1}'.format(dev.getVendorID(), dev.getProductID())
             if dev.getVendorID() == self.vID and dev.getProductID() == self.pID:
                 sn=dev.getSerialNumber()
+                print 'Found Digibase with SN: {0}'.format(sn)
                 self._dev[sn]=dev
 
-        if self._dev.keys() is  None:
+        if len(self._dev.keys()) <=0:
             raise RuntimeError("No Digibase Connected")
         else:
             for sn,dev in self._dev.items():
@@ -478,12 +481,16 @@ if __name__=="__main__":
 
     args=parser.parse_args()
 
+
+    if args.check:
+        print 'Performing Check to see if we can connect to Digibases'
+        dbc=DigiBaseController()
+        exit()
+
+    
     ############################## Setting Value based on args ####################
     if not args.time:
-        if not args.check:
-            raise RuntimeError('Must provide time to acquire in seconds using -t')
-        else:
-            pass
+        raise RuntimeError('Must provide time to acquire in seconds using -t')
     else:
         if args.time >= minAcqTime and args.time <= maxAcqTime:
             acqTime=args.time
@@ -526,3 +533,4 @@ if __name__=="__main__":
             sample=dbc.getSample(sampleDuration)
             dLog.logSample(sample)
     
+    dLog.cleanup()
