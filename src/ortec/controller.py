@@ -423,7 +423,7 @@ class DigiBaseController(object):
         for dev in devlist:
             if dev.getVendorID() == self.vID and dev.getProductID() == self.pID:
                 sn=dev.getSerialNumber()
-                self.dev[sn]=dev
+                self._dev[sn]=dev
 
         if self._dev.keys() is  None:
             raise RuntimeError("No Digibase Connected")
