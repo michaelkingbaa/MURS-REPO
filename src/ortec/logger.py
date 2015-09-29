@@ -5,6 +5,7 @@ import os
 import numpy as np
 import h5py
 import datetime as dt
+import time
 
 class DataLogger(object):
     def __init__(self,fName=None,bufferLength=10):
