@@ -221,7 +221,7 @@ class FPGA(object):
         return r
 
     def getRegisterSettings(self):
-        tmp=ControlRegister(self._read_control_register())
+        tmp=ControlRegister(self.read_control_register())
         settings=tmp.getSettings()
         return settings
 
