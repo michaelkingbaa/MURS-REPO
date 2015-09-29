@@ -422,7 +422,9 @@ class DigiBaseController(object):
         if self._dev is  None:
             raise RuntimeError("No Digibase Connected")
         else:
+            print 'Recieved USB Connection to: ',self._dev
             for d in self._dev:
+                print 'Getting Serial Number and Constructing Digibase for: ',d
                 sn=d.getSerialNumber()
                 self._dets[sn]=DigiBase(sn)
 
@@ -474,7 +476,10 @@ if __name__=="__main__":
 
     ############################## Setting Value based on args ####################
     if not args.time:
-        raise RuntimeError('Must provide time to acquire in seconds using -t')
+        if not args.check:
+            raise RuntimeError('Must provide time to acquire in seconds using -t')
+        else:
+            pass
     else:
         if args.time >= minAcqTime and args.time <= maxAcqTime:
             acqTime=args.time
