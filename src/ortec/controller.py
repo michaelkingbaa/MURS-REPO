@@ -418,7 +418,7 @@ class DigiBaseController(object):
         self._dets={}
         self._acquireFlag=False
         self._usbCon=USBContext()
-        devlist=self.usbCon.getDeviceList()
+        devlist=self._usbCon.getDeviceList()
         self._dev={}
         for dev in devlist:
             if dev.getVendorID() == vID and dev.getProductID() == pID:
