@@ -431,7 +431,8 @@ class DigiBaseController(object):
                     sn=dev.getSerialNumber()
                     print 'Found Digibase with SN: {0}'.format(sn)
                     self._dev[sn]=dev
-            except:
+            except e:
+                print 'There was an exception',e
                 pass
 
         if len(self._dev.keys()) <=0:
