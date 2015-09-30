@@ -422,11 +422,15 @@ class DigiBaseController(object):
         self._dev={}
         print 'Found {0} USB Connections...Scanning for Digibases'.format(len(devlist))
         for dev in devlist:
-            #print 'Ven. ID {0}  Prod ID: {1}'.format(dev.getVendorID(), dev.getProductID())
-            if dev.getVendorID() == self.vID and dev.getProductID() == self.pID:
-                sn=dev.getSerialNumber()
-                print 'Found Digibase with SN: {0}'.format(sn)
-                self._dev[sn]=dev
+            try:
+                vid=dev.getVendorID()
+                pid=dev.getProductID()
+                if vid == self.vID and pid == self.pID:
+                    sn=dev.getSerialNumber()
+                    print 'Found Digibase with SN: {0}'.format(sn)
+                    self._dev[sn]=dev
+            except:
+                pass
 
         if len(self._dev.keys()) <=0:
             raise RuntimeError("No Digibase Connected")
