@@ -427,6 +427,7 @@ class DigiBaseController(object):
                 pid=dev.getProductID()
                 print 'USB vID: {0}, pID: {1}'.format(vid,pid)
                 if vid == self.vID and pid == self.pID:
+                    print 'DIGIBASE Found...getting S/N'
                     sn=dev.getSerialNumber()
                     print 'Found Digibase with SN: {0}'.format(sn)
                     self._dev[sn]=dev
