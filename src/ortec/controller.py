@@ -469,6 +469,15 @@ class DigiBaseController(object):
             #for key,value in settings.items():
             #    sp[sn][key]=value
         return sp
+
+    def getDetList(self):
+        return self._dets.keys()
+    
+    def setHV(self,det,volts):
+        if det in self._dets.keys():
+            self._dets[det].set_hv(volts)
+        else:
+            raiseRuntimeError('No Det to set HV in DigiBaseController')
     
 if __name__=="__main__":
     minAcqTime=1#seconds
@@ -531,6 +540,14 @@ if __name__=="__main__":
     ######################### Initializing Objects #################################
     dbc=DigiBaseController()
 
+    #This part is for setting gain's appropriately
+    hvSetting={'15226062':1100,
+               '15226066':1100,
+               '15194763':800,
+    }
+    for det in dbc.getDetList():
+        dbc.setHV(det,hvSetting[str(det)])
+    
     dLog=DataLogger()
 
     if not args.check:
