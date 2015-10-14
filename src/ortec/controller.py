@@ -541,10 +541,10 @@ if __name__=="__main__":
     dbc=DigiBaseController()
 
     #This part is for setting gain's appropriately
-    hvSetting={'15226062':1100,
-               '15226066':1100,
-               '15194763':800,
-    }
+#'15226068':1045,'15226060':1039,'15226047':1020,'15226050':1080,'15226048':1033,'15226057':1059
+   
+               
+    hvSetting={'15226057':1059}
     for det in dbc.getDetList():
         dbc.setHV(det,hvSetting[str(det)])
     
