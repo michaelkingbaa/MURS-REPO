@@ -212,7 +212,7 @@ class ControlRegister(object):
 
     def get_fine_gain(self):
         index=self._regName.index('fine_gain_act')
-        tmp=self._byteList[index].get_value()
+        tmp=self._byteList[index].get_value()/2.**22
         return tmp
         
     def get_byte_string(self):
@@ -292,10 +292,13 @@ class FPGA(object):
         return r
 
     def getRegisterSettings(self):
+        CR=self.read_control_register()
+        self._controlRegister.set_from_bytes(CR)
         settings=self._controlRegister.get_settings()
         settings['gain_stab_enable']=int(settings['control'][4])
         settings['hv_actual']=self._controlRegister.get_hv_actual()
-        exclude=['control','status','hv_act','hv_set','insight_ctl','spare_0','aux_io','aux_ctl','ff_count','aux0_cnt',
+        settings['fine_gain']=self._controlRegister.get_fine_gain()
+        exclude=['control','status','insight_ctl','spare_0','aux_io','aux_ctl','ff_count','aux0_cnt',
                  'aux1_cnt','auxE_cnt','mem_size','mem_start','control2','spare_1']
         for key in exclude:
             if key in settings:
@@ -758,7 +761,8 @@ if __name__=="__main__":
             dbc.enable_gain_stab(det)
             
         print 'Setting Fine Gain for {0} to: {1}'.format(det,fine_gain[det])
-        dbc.getDet(det).set_fine_gain(fine_gain[det])
+#        dbc.getDet(det).set_fine_gain(fine_gain[det])
+        dbc.getDet(det).set_fine_gain(1.1)
     
     print '##########################################################################'
     print '##########################################################################'
@@ -767,6 +771,9 @@ if __name__=="__main__":
     if not args.check:
         dbc.start_acquisition()
         for s in range(nSamples):
+            hv=900
+            for det in dbc.getDetList():
+                dbc.setHV(det,hv)
             print 'Acquiring Sample {0}'.format(s)
             sample=dbc.getSample(duration=args.sample_duration)
             print sample
