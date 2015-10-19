@@ -767,9 +767,6 @@ if __name__=="__main__":
     if not args.check:
         dbc.start_acquisition()
         for s in range(nSamples):
-            hv=900
-            for det in dbc.getDetList():
-                dbc.setHV(det,hv)
             print 'Acquiring Sample {0}'.format(s)
             sample=dbc.getSample(duration=args.sample_duration)
             print sample
