@@ -16,6 +16,8 @@ class DataLogger(object):
             t=t.strftime("%Y-%m-%dT%H-%M-%SZ")
             if os.path.exists(os.path.abspath('./data/')):
                 self._fName=os.path.abspath('./data/DataLog-%s.h5'%t)
+            elif os.path.exists(os.path.abspath('/home/data/ortec')):
+                self._fName=os.path.abspath('/home/data/ortec/DataLog-%s.h5'%t)
             else:
                 self._fName=os.path.abspath('./DataLog-%s.h5'%t)
         else:
@@ -40,12 +42,15 @@ class DataLogger(object):
             self._bufferInitialized=True
 
             for sn in sample.keys():
+                print 'Creating Group for sn: {0}'.format(sn)
                 self._buffer[sn]={}
                 for key in sample[sn].keys():
+                    print 'Creating Dataset for key: {0}'.format(key)
                     if key == 'spectrum':
                         nChannels=sample[sn][key].shape[0]
                         self._buffer[sn][key]=np.zeros((self._bufferLength,nChannels),dtype=np.int)
                     else:
+                        print 'dataType: {0}'.format(type(sample[sn][key]))
                         self._buffer[sn][key]=np.zeros(self._bufferLength,dtype=type(sample[sn][key]))
                         
                             

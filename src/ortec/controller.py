@@ -1,18 +1,20 @@
+#!/usr/bin/env python2
 '''
 Created by S. Henshaw 2 Sept. 2015
 
 Ortec Vendor ID: 2605  Product ID=31
-
 '''
 import os
 import sys
-from struct import pack
+from struct import pack,unpack
 import struct
 from usb1 import USBContext
 import time
 import numpy as np
 from logger import DataLogger
 import argparse
+import json
+import datetime as dt
 
 class BitRegister(object):
     def __init__(self,name,initByte):
@@ -38,9 +40,17 @@ class BitRegister(object):
     def get_bytes(self):
         return self._byte
 
+    def set_bytes(self,bytestr):
+        self._byte=bytestr
+
     def get_name(self):
         return self._name
 
+    def get_value(self):
+        #Returns a list of bit values
+        tmp=[ord(self._byte) & 2**i !=0 for i in range(8)]
+        return tmp
+    
 class ByteRegister(object):
     def __init__(self,name,initBytes):
         self._name=name
@@ -53,24 +63,42 @@ class ByteRegister(object):
     def get_bytes(self):
         return self._bytes
 
+    def set_bytes(self,bytestr):
+        self._bytes=bytestr
+    
     def set_value(self,intValue):
         if type(intValue) is not type(int()):
             raise ValueError('Set Value but be of type int in ByteRegister')
         if len(self._bytes) ==1:
-            self._bytes=chr(intValue)
+            self._bytes=pack('B',intValue)
         elif len(self._bytes)==2:
             self._bytes=pack('H',intValue)
         elif len(self._bytes)==4:
-            self._bytes=pakc('I',intValue)
+            self._bytes=pack('I',intValue)
+                
 
+    def get_value(self):
+        print 'Getting {0} value:  Len={1}, bytes: {2}'.format(self._name,len(self._bytes),repr(self._bytes))
+        if len(self._bytes) ==1:
+            val= unpack('B',self._bytes)[0]
+            print val
+            return val
+        elif len(self._bytes)==2:
+            val= unpack('H',self._bytes)[0]
+            print val
+            return val
+        elif len(self._bytes)==4:
+            val=unpack('I',self._bytes)[0]
+            print val
+            return val
+        else:
+            raise Exception('Bytes wrong length: {0}'.format(len(self._bytes)))
+            
 class ControlRegister(object):
     #This contains the objects of interest, all others set to zero
-    def __init__(self, bytes=''):
-        if bytes is not '':
-            if len(bytes) != 80:
-                raise RuntimeError("Invalid # bytes in Control Register Initial: %d"%len(bytes))
-#            print '\t\tSetting Control Register from bytes'
-            self.set_from_bytes(bytes)
+    def __init__(self, bytestr=''):
+        if bytestr is not '':
+            self.set_from_bytes(bytestr)
             self._regName=[i.get_name() for i in self._byteList]
             return 
         else:
@@ -80,6 +108,8 @@ class ControlRegister(object):
             return 
 
     def set_from_bytes(self,bytestring):
+        if len(bytestring) !=80:
+            raise RuntimeError("Invalid # of bytes to set_from_bytes in Control Register: {0}".format(len(bytestring)))
         b=list(bytestring)
         self._byteList=[BitRegister('control',b[0]),
                         BitRegister('status',b[1]),
@@ -134,7 +164,7 @@ class ControlRegister(object):
                         ByteRegister('rt_preset',pack('I',0)),
                         ByteRegister('realtime',pack('I',0)),
                         ByteRegister('uld_set',pack('H',1023)),
-                        ByteRegister('hv_set',pack('H',790)),
+                        ByteRegister('hv_set',pack('H',0)),
                         ByteRegister('aux0_cnt',pack('I',0)),
                         ByteRegister('aux1_cnt',pack('I',0)),
                         ByteRegister('auxE_cnt',pack('I',0)),
@@ -152,17 +182,39 @@ class ControlRegister(object):
                         ByteRegister('spare_1',chr(0)*3)]
         return 
 
-    def getSettings(self):
+    def get_settings(self):
         settings={}
-        for i in self._regName:
-            settings[i]=self._byteList[i]
+        exclude=['spare_1']
+        for reg in self._byteList:
+            if reg.get_name() not in exclude:
+                settings[reg.get_name()]=reg.get_value()
         return settings
     
     def set_hv_actual(self,volts):
         hvsetting=int(volts/1.25)
         index=self._regName.index('hv_set')
         self._byteList[index].set_value(hvsetting)
-    
+
+    def get_hv_actual(self):
+        index=self._regName.index('hv_act')
+        tmp_lo=self._byteList[index].get_value()
+        index=self._regName.index('status')
+        tmp_hi=self._byteList[index].get_value()[5:7]
+        return (tmp_lo | tmp_hi[0]<<8 | tmp_hi[1]<<9)*1.25#return value in volts
+
+    def set_fine_gain(self,fg):
+        if fg >=0.4 and fg <=1.2:
+            index=self._regName.index('fine_gain_set')
+            val=int(fg*2**22)
+            self._byteList[index].set_value(val)
+        else:
+            raise ValueError('fg must be between 0.4-1.2')
+
+    def get_fine_gain(self):
+        index=self._regName.index('fine_gain_act')
+        tmp=self._byteList[index].get_value()
+        return tmp
+        
     def get_byte_string(self):
         bytes=[i.get_bytes() for i in self._byteList]
         #print bytes
@@ -170,8 +222,28 @@ class ControlRegister(object):
     
     def set_enable_hv(self,value):
         index=self._regName.index('control')
-        self._byteList[index].set_bit(6,1)
+        if value in [0,1]:
+            self._byteList[index].set_bit(6,value)
+            self._byteList[self._regName.index('control2')].set_bit(2,value)
+        else:
+            raise ValueError('set_enable_hv value must be 0,1')
 
+    def set_enable_gain_stab(self,value):
+        index=self._regName.index('control')
+        if value in [0,1]:
+            self._byteList[index].set_bit(4,value)
+        else:
+            raise ValueError('set_enable_hv value must be 0,1')
+
+    def set_gain_stab_pars(self,minVal, midVal, maxVal):
+        names=['gain_stab_min','gain_stab_mid','gain_stab_max']
+        pars=[minVal,midVal,maxVal]
+        valid=[i > 0 and i < 1024 for i in pars]
+        if all(valid):
+            for i,v in enumerate(pars):
+                index=self._regName.index(names[i])
+                self._byteList[index].set_value(v)
+        
     def get_mem_size(self):
         index=self.regName.index('mem_size')
         return self._byteList[index].get_bytes()
@@ -212,7 +284,6 @@ class FPGA(object):
 
         #Writing CR to the FPGA
         self.write_control_register()
-        
 
         
     def read_control_register(self):
@@ -221,8 +292,15 @@ class FPGA(object):
         return r
 
     def getRegisterSettings(self):
-        tmp=ControlRegister(self.read_control_register())
-        settings=tmp.getSettings()
+        settings=self._controlRegister.get_settings()
+        settings['gain_stab_enable']=int(settings['control'][4])
+        settings['hv_actual']=self._controlRegister.get_hv_actual()
+        exclude=['control','status','hv_act','hv_set','insight_ctl','spare_0','aux_io','aux_ctl','ff_count','aux0_cnt',
+                 'aux1_cnt','auxE_cnt','mem_size','mem_start','control2','spare_1']
+        for key in exclude:
+            if key in settings:
+                del settings[key]
+
         return settings
 
         
@@ -232,8 +310,9 @@ class FPGA(object):
         msg=self.CMD_SETCONTROL+cr
         self._cnct.bulkWrite(self.eP_SEND,msg,self.TIMEOUT)
         self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
-        tmp=self.read_control_register()
+        CR=self.read_control_register()
         print 'Control Register Written Successfully!'
+        self._controlRegister.set_from_bytes(CR)
 
     def clear_data(self):
         self._cnct.bulkWrite(self.eP_SEND,self.CMD_CLEARDATA,self.TIMEOUT)
@@ -261,7 +340,30 @@ class FPGA(object):
     def set_hv(self,volts):
         self._controlRegister.set_hv_actual(volts)
         self.write_control_register()
-        
+        return self._controlRegister.get_hv_actual()
+
+    def get_hv(self):
+        return self._controlRegister.get_hv_actual()
+
+    def set_fine_gain(self,value):
+        self._controlRegister.set_fine_gain(value)
+
+    def get_fine_gain(self):
+        return self._controlRegister.get_fine_gain()
+    
+    def enable_gain_stab(self):
+        self._controlRegister.set_enable_gain_stab(1)
+        self.write_control_register()
+
+    def disable_gain_stab(self):
+        self._controlRegister.set_enable_gain_stab(0)
+        self.write_control_register()
+
+    def set_gain_stab_pars(self,minVal, midVal, maxVal):
+        self._controlRegister.set_gain_stab_pars(minVal,midVal,maxVal)
+        self.write_control_register()
+
+    
 class MicroController(object):
     #Microcontroller EndPoints  from ORTEC Docs
     eP_SEND=1
@@ -278,7 +380,8 @@ class MicroController(object):
     TIMEOUT=800
     
     #firmware for FPGA
-    rbfFile=os.path.abspath('./digiBaseRH.rbf')
+    dirname=os.path.dirname(__file__)
+    rbfFile=os.path.join(os.path.abspath(dirname),'digiBaseRH.rbf')
 
     #Max Data Size (ORTEC driver requirement)
     MAX_MSG_SIZE=65536
@@ -388,9 +491,54 @@ class DigiBase(object):
         self._cnct.claimInterface(0)
         self._microCon=MicroController(self._cnct)
         self._fpga=self._microCon.initializeFPGA()
+        print 'WARNING!!! Default HV is set to 0, use set_hv(volts=val) to set to appropriate value'
 
+    def enable_hv(self):
+        self._fpga.enable_hv()
+
+    def disable_hv(self):
+        self._fpga.disable_hv()
+        
     def set_hv(self,volts):
-        self._fpga.set_hv(volts)
+        #Parameters for stepping HV
+        vmin=0#volts
+        vmax=1200#volts
+        vstep=100.#Volts
+        tstep=1e-4#seconds
+        
+        vold=self._fpga.get_hv()
+
+        volts=float(volts)
+        print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
+        if not (volts >=0 and volts <=1200):
+            raise ValueError('cannot set_hv to volts={0}...Range is {1}-{2} V'.format(volts,vmin,vmax))
+        
+        nSteps=(volts-vold)/vstep
+        sign=np.sign(nSteps)
+        nSteps=int(max(abs(nSteps),1))
+
+        #Stepping Voltage by 10 V increments
+        for i in xrange(nSteps):
+            v=vold+i*vstep*sign
+            print 'Stepping Voltage to: {0} V'.format(v)
+            self._fpga.set_hv(v)
+            time.sleep(tstep)
+
+        #Now we are sure we are within 10 V so set to actual value
+        val=self._fpga.set_hv(volts)
+        if nSteps>3:
+            print 'Letting HV stabilize for 5 seconds'
+            time.sleep(5)
+        return val
+
+    def get_hv(self):
+        return self._fpga.get_hv_actual()
+    
+    def set_fine_gain(self,value):
+        self._fpga.set_fine_gain(value)
+
+    def get_fine_gain(self):
+        return self._fpga.get_fine_gain()    
 
     def get_settings(self):
         return self._fpga.getRegisterSettings()
@@ -409,6 +557,16 @@ class DigiBase(object):
     def clear_spectrum(self):
         self._fpga.clear_data()
 
+    def enable_gain_stab(self):
+        self._fpga.enable_gain_stab()
+
+    def disable_gain_stab(self):
+        self._fpga.disable_gain_stab()
+        
+    def set_gain_stab_pars(self,minVal,midVal,maxVal):
+        self._fpga.set_gain_stab_pars(minVal,midVal,maxVal)
+        
+
 
 class DigiBaseController(object):
     vID=2605
@@ -425,13 +583,12 @@ class DigiBaseController(object):
             try:
                 vid=dev.getVendorID()
                 pid=dev.getProductID()
-                print 'USB vID: {0}, pID: {1}'.format(vid,pid)
                 if vid == self.vID and pid == self.pID:
                     print 'DIGIBASE Found...getting S/N'
                     sn=dev.getSerialNumber()
                     print 'Found Digibase with SN: {0}'.format(sn)
                     self._dev[sn]=dev
-            except Exception as e:
+            except Exception as  e:
                 print 'There was an exception',e
                 pass
 
@@ -465,39 +622,77 @@ class DigiBaseController(object):
             sp[sn]={}
             sp[sn]['time']=st
             sp[sn]['spectrum']=np.array(det.get_spectrum())
-            #settings=det.get_settings()
-            #for key,value in settings.items():
-            #    sp[sn][key]=value
+            settings=det.get_settings()
+            for key,value in settings.items():
+                sp[sn][key]=value
         return sp
 
     def getDetList(self):
         return self._dets.keys()
+
+    def getDet(self,detName):
+        return self._dets[detName]
+
     
     def setHV(self,det,volts):
         if det in self._dets.keys():
             self._dets[det].set_hv(volts)
         else:
             raiseRuntimeError('No Det to set HV in DigiBaseController')
-    
+
+    def enable_gain_stab(self,det=None):
+        if det is None:
+            for det in self._dets:
+                self._dets[det].enable_gain_stab()
+        elif det in self._dets.keys():
+            self._dets[det].enable_gain_stab()
+        else:
+            raise ValueError('enable_gain_stab called with invalid det: {0}'.format(det))
+
+    def disable_gain_stab(self,det=None):
+        if det is None:
+            for det in self._dets:
+                self._dets[det].disable_gain_stab()
+        elif det in self._dets.keys():
+            self._dets[det].disable_gain_stab()
+        else:
+            raise ValueError('disable_gain_stab called with invalid det: {0}'.format(det))
+
+
+    def set_gain_stab_pars(self,det,minVal,midVal,maxVal):
+        if det in self._dets.keys():
+            self._dets[det].set_gain_stab_pars(minVal,midVal,maxVal)
+        else:
+            raise ValueError('set_gain_stab_pars called with invalid det: {0}'.format(det))
+
 if __name__=="__main__":
     minAcqTime=1#seconds
     maxAcqTime=30*3600#seconds
 
     defaultSamplePeriod=1#seconds
-#    defaultLogPeriod=5*60#seconds
-    defaultLogPeriod=60#seconds
-    
+    defaultLogPeriod=300#seconds
+
+    timeStart=dt.datetime.utcfromtimestamp(time.time())
+    timeStart=timeStart.strftime("%Y-%m-%dT%H-%M-%SZ")
+    defaultFileName='DataLog_{0}.h5'.format(timeStart)
+    defaultDirectory='./'
+
+    defaultConfigFile='./ortec_config_default.ini'
     ##################### Parsing Command Line Arguments   ##############################
     parser = argparse.ArgumentParser()
     parser.add_argument("-t","--time",type=int,help="Total Acquisition time in seconds (must be integer)")
-    parser.add_argument("-d","--sample_duration",type=int,help="Time Period for each sample in seconds (must be integer)")
-    parser.add_argument("-f","--file",type=str,help="Name of data file (default is DataLog_[timestamp].h5")
+    parser.add_argument("--sample_duration",type=int,help="Time Period for each sample in seconds (must be integer)",default=defaultSamplePeriod)
+    parser.add_argument("--log_period",type=int,help="Log Buffer Length in seconds (must be integer)",default=defaultLogPeriod)
+    parser.add_argument("-f","--file",type=str,help="Name of data file (default is DataLog_[timestamp].h5",default=defaultFileName)
+    parser.add_argument("--directory",type=str,help="Directory to store Data File",default=defaultDirectory)
     parser.add_argument("-c","--check",help="Check to see if Digibases are connected",action="store_true")
-    #    parser.add_argument("-g","--graphics",help="Turn on graphics",action="store_true")
-
+    parser.add_argument("--config_file",type=str,help="Name of config file for detector settings",default=defaultConfigFile)
     args=parser.parse_args()
 
 
+    print '\n\n######################### Controller Acquisition #########################'
+    print '##########################################################################'
+    
     if args.check:
         print 'Performing Check to see if we can connect to Digibases'
         dbc=DigiBaseController()
@@ -508,53 +703,76 @@ if __name__=="__main__":
     if not args.time:
         raise RuntimeError('Must provide time to acquire in seconds using -t')
     else:
-        if args.time >= minAcqTime and args.time <= maxAcqTime:
-            acqTime=args.time
-        else:
+        if not minAcqTime <= args.time <= maxAcqTime:
             raise RuntimeError('time must be between {0} - {1} seconds, set using -t '.format(minAcqTime,maxAcqTime))
+
+    if not args.sample_duration<=args.time:
+        raise RuntimeError('Sample Duration must be less than Acquisition Time')
+    
+    if not os.path.exists(os.path.abspath(args.directory)):
+        raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(args.directory))
+
+    fileName=os.path.join(os.path.abspath(args.directory),args.file)
+
+    if not os.path.exists(os.path.abspath(args.config_file)):
+        raise RuntimeError('config file does not exist: {0}',args.config_file)
+
     print '############################## Run Setup ####################'
-    if not args.sample_duration:
-        print 'Sample Duration set to default of {0} seconds!'.format(defaultSamplePeriod)
-        sampleDuration=defaultSamplePeriod
-    else:
-        if args.sample_duration<acqTime:
-            sampleDuration=args.sample_duration
-        else:
-            raise RuntimeError('Sample Duration (-d) must be less than Acquisition Time (-t)')
-
-    if args.file:
-        fileName=args.file
-    else:
-        fileName=None
+    print 'Acquisition Time set to: {0} s'.format(args.time)
+    print 'Sample Duration set to {0} s'.format(args.sample_duration)
+    print 'Log file: {0}'.format(fileName)
+    print 'Logging to file every {0} seconds'.format(args.log_period)
         
-        
-    nSamples=int(acqTime*1.0/sampleDuration)
-    nLogSamples=max(int(defaultLogPeriod/sampleDuration),1)
-    print 'Collecting {0} samples of length {1}'.format(nSamples,sampleDuration)
-    print 'Logging data every {0} samples = {1} seconds'.format(nLogSamples,defaultLogPeriod)
 
-
-
-
+      
+    nSamples=int(args.time*1.0/args.sample_duration)
+    nLogSamples=max(int(args.log_period/args.sample_duration),1)
+    print 'Logging data every {0} samples = {1} seconds'.format(nLogSamples,args.log_period)
+    
+    print 'Detector Configuration File: {0}'.format(args.config_file)
+    
 
     ######################### Initializing Objects #################################
+    print '############################## Constructors   ####################'
     dbc=DigiBaseController()
-
-    #This part is for setting gain's appropriately
-#'15226068':1045,'15226060':1039,'15226047':1020,'15226050':1080,'15226048':1033,'15226057':1059
-   
-               
-    hvSetting={'15226057':1059}
-    for det in dbc.getDetList():
-        dbc.setHV(det,hvSetting[str(det)])
-    
     dLog=DataLogger()
+        
+
+    #Getting Detector Settings from .ini file
+    with open(args.config_file,'r') as f:
+        data=json.load(f)
+
+        hv_setting=data[u'hv_setting']
+        gain_stab_pars=data[u'gain_stab_pars']
+        fine_gain=data[u'fine_gain']
+
+    #Applying .ini settings
+    for det in dbc.getDetList():
+        dbc.setHV(det,hv_setting[str(det)])
+
+        dbc.set_gain_stab_pars(det,
+                               gain_stab_pars[det]['min'],
+                               gain_stab_pars[det]['mid'],
+                               gain_stab_pars[det]['max'])
+        if gain_stab_pars[det]['enable']:
+            dbc.enable_gain_stab(det)
+            
+        print 'Setting Fine Gain for {0} to: {1}'.format(det,fine_gain[det])
+        dbc.getDet(det).set_fine_gain(fine_gain[det])
+    
+    print '##########################################################################'
+    print '##########################################################################'
+    print '########################## Starting Run Loop  ############################'
 
     if not args.check:
         dbc.start_acquisition()
         for s in range(nSamples):
+            hv=900
+            for det in dbc.getDetList():
+                dbc.setHV(det,hv)
             print 'Acquiring Sample {0}'.format(s)
-            sample=dbc.getSample(sampleDuration)
+            sample=dbc.getSample(duration=args.sample_duration)
+            print sample
             dLog.logSample(sample)
     
     dLog.cleanup()
