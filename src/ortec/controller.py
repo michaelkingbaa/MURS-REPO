@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 '''
 Created by S. Henshaw 2 Sept. 2015
+Modification to support mulitprocess added on 21 Oct. 2015
 
 Ortec Vendor ID: 2605  Product ID=31
 '''
