@@ -89,6 +89,8 @@ if __name__ == '__main__':
                         help="Directory to store Data File.  Default is {0}".format(defaultDirectory))
     parser.add_argument("--config_file",default=defaultConfigFile,type=str,
                         help="Name of config file for detector settings. Default is {0}".format(defaultConfigFile))
+    parser.add_argument("--spoof_digibase",default=False,action="store_true",
+                        help="Use this to check code without having digibase connected")
     args=parser.parse_args()
     if len(sys.argv) <=1:
         parser.print_help()
@@ -136,8 +138,11 @@ if __name__ == '__main__':
     print '###############################################################################'
     print '######################### Class Constructors ##################################'
     print '###############################################################################'
-    #dbc=DigiBaseController()
-    dbc=DigiBaseSpoofer()
+    if args.spoof_digibase:
+        warnings.warn("Spoofing Digibase Input for debug purposes")
+        dbc=DigiBaseSpoofer()
+    else:
+        dbc=DigiBaseController()
     dLog=DataLogger(fileName,nLogSamples)
 
     print '###############################################################################'
