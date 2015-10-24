@@ -47,7 +47,7 @@ class DataLogger(object):
                 for key in sample[sn].keys():
                     print 'Creating Dataset for key: {0}'.format(key)
                     if key == 'spectrum':
-                        nChannels=sample[sn][key].shape[0]
+                        nChannels=len(sample[sn][key])
                         self._buffer[sn][key]=np.zeros((self._bufferLength,nChannels),dtype=np.int)
                     else:
                         print 'dataType: {0}'.format(type(sample[sn][key]))

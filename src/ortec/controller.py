@@ -625,7 +625,7 @@ class DigiBaseController(object):
         for sn,det in self._dets.items():
             sp[sn]={}
             sp[sn]['time']=st
-            sp[sn]['spectrum']=np.array(det.get_spectrum())
+            sp[sn]['spectrum']=det.get_spectrum()
             settings=det.get_settings()
             for key,value in settings.items():
                 sp[sn][key]=value
@@ -669,115 +669,37 @@ class DigiBaseController(object):
         else:
             raise ValueError('set_gain_stab_pars called with invalid det: {0}'.format(det))
 
+
+class DigiBaseSpoofer(object):
+    def __init__(self):
+        print 'Spoofing class of Digibase'
+
+    def start_acquisition(self):
+        print 'Starting Acquisition'
+
+    def clear_sample(self):
+        return
+
+    def getSample(self, duration):
+        time.sleep(duration)
+        sample={'db1001':{'time':time.time(),'spectrum':range(1024)}}
+        return sample
+
+    def getDetList(self):
+        return ['db1001']
+
+    def getDet(self,detname):
+        return
+    def setHV(self,det,volts):
+        return
+    def enable_gain_stab(self,det=None):
+        return
+    def disable_gain_stab(self,det=None):
+        return
+    def set_gain_stab_pars(self,det,minVal,midVal,maxVal):
+        return
+    def set_fine_gain(self,det,value):
+        return
+        
 if __name__=="__main__":
-    minAcqTime=1#seconds
-    maxAcqTime=30*3600#seconds
-
-    defaultSamplePeriod=1#seconds
-    defaultLogPeriod=300#seconds
-
-    timeStart=dt.datetime.utcfromtimestamp(time.time())
-    timeStart=timeStart.strftime("%Y-%m-%dT%H-%M-%SZ")
-    defaultFileName='DataLog_{0}.h5'.format(timeStart)
-    defaultDirectory='./'
-
-    defaultConfigFile='./ortec_config_default.ini'
-    ##################### Parsing Command Line Arguments   ##############################
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-t","--time",type=int,help="Total Acquisition time in seconds (must be integer)")
-    parser.add_argument("--sample_duration",type=int,help="Time Period for each sample in seconds (must be integer)",default=defaultSamplePeriod)
-    parser.add_argument("--log_period",type=int,help="Log Buffer Length in seconds (must be integer)",default=defaultLogPeriod)
-    parser.add_argument("-f","--file",type=str,help="Name of data file (default is DataLog_[timestamp].h5",default=defaultFileName)
-    parser.add_argument("--directory",type=str,help="Directory to store Data File",default=defaultDirectory)
-    parser.add_argument("-c","--check",help="Check to see if Digibases are connected",action="store_true")
-    parser.add_argument("--config_file",type=str,help="Name of config file for detector settings",default=defaultConfigFile)
-    args=parser.parse_args()
-
-
-    print '\n\n######################### Controller Acquisition #########################'
-    print '##########################################################################'
-    
-    if args.check:
-        print 'Performing Check to see if we can connect to Digibases'
-        dbc=DigiBaseController()
-        exit()
-
-    
-    ############################## Setting Value based on args ####################
-    if not args.time:
-        raise RuntimeError('Must provide time to acquire in seconds using -t')
-    else:
-        if not minAcqTime <= args.time <= maxAcqTime:
-            raise RuntimeError('time must be between {0} - {1} seconds, set using -t '.format(minAcqTime,maxAcqTime))
-
-    if not args.sample_duration<=args.time:
-        raise RuntimeError('Sample Duration must be less than Acquisition Time')
-    
-    if not os.path.exists(os.path.abspath(args.directory)):
-        raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(args.directory))
-
-    fileName=os.path.join(os.path.abspath(args.directory),args.file)
-
-    if not os.path.exists(os.path.abspath(args.config_file)):
-        raise RuntimeError('config file does not exist: {0}',args.config_file)
-
-    print '############################## Run Setup ####################'
-    print 'Acquisition Time set to: {0} s'.format(args.time)
-    print 'Sample Duration set to {0} s'.format(args.sample_duration)
-    print 'Log file: {0}'.format(fileName)
-    print 'Logging to file every {0} seconds'.format(args.log_period)
-        
-
-      
-    nSamples=int(args.time*1.0/args.sample_duration)
-    nLogSamples=max(int(args.log_period/args.sample_duration),1)
-    print 'Logging data every {0} samples = {1} seconds'.format(nLogSamples,args.log_period)
-    
-    print 'Detector Configuration File: {0}'.format(args.config_file)
-    
-
-    ######################### Initializing Objects #################################
-    print '############################## Constructors   ####################'
-    dbc=DigiBaseController()
-    dLog=DataLogger()
-        
-
-    #Getting Detector Settings from .ini file
-    with open(args.config_file,'r') as f:
-        data=json.load(f)
-
-        hv_setting=data[u'hv_setting']
-        gain_stab_pars=data[u'gain_stab_pars']
-        fine_gain=data[u'fine_gain']
-
-    #Applying .ini settings
-    for det in dbc.getDetList():
-        dbc.setHV(det,hv_setting[str(det)])
-
-        dbc.set_gain_stab_pars(det,
-                               gain_stab_pars[det]['min'],
-                               gain_stab_pars[det]['mid'],
-                               gain_stab_pars[det]['max'])
-        if gain_stab_pars[det]['enable']:
-            dbc.enable_gain_stab(det)
-            
-        print 'Setting Fine Gain for {0} to: {1}'.format(det,fine_gain[det])
-#        dbc.getDet(det).set_fine_gain(fine_gain[det])
-        dbc.getDet(det).set_fine_gain(1.1)
-    
-    print '##########################################################################'
-    print '##########################################################################'
-    print '########################## Starting Run Loop  ############################'
-
-    if not args.check:
-        dbc.start_acquisition()
-        for s in range(nSamples):
-            hv=900
-            for det in dbc.getDetList():
-                dbc.setHV(det,hv)
-            print 'Acquiring Sample {0}'.format(s)
-            sample=dbc.getSample(duration=args.sample_duration)
-            print sample
-            dLog.logSample(sample)
-    
-    dLog.cleanup()
+   sys.exit('Cannot call Controller from command line...Try using python daq.py -h for instructions')
