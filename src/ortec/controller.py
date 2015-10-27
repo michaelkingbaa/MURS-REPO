@@ -502,8 +502,19 @@ class DigiBase(object):
 
     def disable_hv(self):
         self._fpga.disable_hv()
-        
+
     def set_hv(self,volts):
+        vold=self._fpga.get_hv()
+
+        volts=float(volts)
+        print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
+        if not (volts >=0 and volts <=1200):
+            raise ValueError('cannot set_hv to volts={0}...Range is {1}-{2} V'.format(volts,vmin,vmax))
+        val=self._fpga.set_hv(volts)
+        return val 
+
+        
+    def set_hv_steps(self,volts):
         #Parameters for stepping HV
         vmin=0#volts
         vmax=1200#volts
@@ -669,7 +680,11 @@ class DigiBaseController(object):
         else:
             raise ValueError('set_gain_stab_pars called with invalid det: {0}'.format(det))
 
-
+    def do_startup_checks(self):
+        tHold=5
+        print 'Waiting {0} seconds for Dets to Stabilize'.format(tHold)
+        time.sleep(5)
+        
 class DigiBaseSpoofer(object):
     def __init__(self):
         print 'Spoofing class of Digibase'

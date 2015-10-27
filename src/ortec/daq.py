@@ -195,7 +195,9 @@ if __name__ == '__main__':
         else:
             warnings.warn('{0} does not contain fine_gain setting for det: {1} ...setting to default=1'.format(args.config_file,det))
             dbc.set_fine_gain(det,1)
-    
+
+    dbc.do_startup_checks()
+            
     print '##########################################################################'
     print '########################## Starting Run Loop  ############################'
     print '##########################################################################'
