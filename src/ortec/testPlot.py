@@ -1,4 +1,5 @@
 import os
+import sys
 import h5py
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
