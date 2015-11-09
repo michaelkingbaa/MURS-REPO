@@ -290,12 +290,11 @@ class FPGA(object):
 
         #Setting the Appropriate Settings
         self._controlRegister.set_enable_hv(1)
+        self._controlRegister.set_enable_overflow(1)
 
         #Writing CR to the FPGA
         self.write_control_register()
         
-        ##Mark #Setting the Overflow Channel
-        self._controlRegister.set_enable_overflow(1)
 
         
     def read_control_register(self):
