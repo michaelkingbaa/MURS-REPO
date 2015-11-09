@@ -254,7 +254,15 @@ class ControlRegister(object):
             index=self._regName.index('control')
             self._byteList[index].set_bit(1,1)
         else:
-            raiseValueError('acq_start bit must be 1 or 0')
+            raise ValueError('acq_start bit must be 1 or 0')
+            
+    ### MARK INCORPORATING THE OVERFLOW ##
+    def set_enable_overflow(self,value):
+        index=self._regName.index('control2')
+        if value in [0,1]:
+            self._byteList[index].set_bit(6,value)
+        else:
+            raise ValueError('set_enable_overflow value must be 0,1')
 
 class FPGA(object):
     eP_SEND=8
@@ -285,6 +293,9 @@ class FPGA(object):
 
         #Writing CR to the FPGA
         self.write_control_register()
+        
+        ##Mark #Setting the Overflow Channel
+        self._controlRegister.set_enable_overflow(1)
 
         
     def read_control_register(self):
