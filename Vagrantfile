@@ -12,6 +12,7 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
+  # Download an Ubuntu 14.04 box with the desktop GUI
   config.vm.box = "box-cutter/ubuntu1404-desktop"
 
   # Disable automatic box update checking. If you disable this, then
@@ -39,41 +40,96 @@ Vagrant.configure(2) do |config|
   # argument is a set of non-required options.
   #config.vm.synced_folder ".", "/murs"
 
-  # Provider-specific configuration so you can fine-tune various
-  # backing providers for Vagrant. These expose provider-specific options.
-  # Example for VirtualBox:
-  #
-  config.vm.provider "virtualbox" do |vb|
-    # Display the VirtualBox GUI when booting the machine
-    vb.gui = true
+  def usbfilter_exists(machine_name, vendor_id, product_id)
+    #
+    # Determine if a usbfilter with the provided Vendor/Product ID combination
+    # already exists on this VM.
+    #
+    # TODO: Use a more reliable way of retrieving this information.
+    #
+    # NOTE: The "machinereadable" output for usbfilters is more
+    #       complicated to work with (due to variable names including
+    #       the numeric filter index) so we don't use it here.
+    #
+    machine_id_filepath = ".vagrant/machines/" + machine_name + "/virtualbox/id"
 
-    vb.name = "murs_contextual_vm"
-  
-    # Customize the amount of memory on the VM:
-    vb.memory = 2048
-    vb.cpus = 2
-    vb.customize ["modifyvm", :id, "--vram", 64]
-    vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
+    if not File.exists? machine_id_filepath
+      # VM hasn't been created yet.
+      return false
+    end
+
+    vm_info = `VBoxManage showvminfo $(<#{machine_id_filepath})`
+    filter_match = "VendorId:         #{vendor_id}\nProductId:        #{product_id}\n"
+    return vm_info.include? filter_match
   end
-  #
-  # View the documentation for the provider you are using for more
-  # information on available options.
 
-  # Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
-  # such as FTP and Heroku are also available. See the documentation at
-  # https://docs.vagrantup.com/v2/push/atlas.html for more information.
-  # config.push.define "atlas" do |push|
-  #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
-  # end
+  def better_usbfilter_add(vb, machine_name, vendor_id, product_id, filter_name)
+    #
+    # This is a workaround for the fact VirtualBox doesn't provide
+    # a way for preventing duplicate USB filters from being added.
+    #
+    # TODO: Implement this in a way that it doesn't get run multiple
+    #       times on each Vagrantfile parsing.
+    #
+    if not usbfilter_exists(machine_name, vendor_id, product_id)
+      vb.customize ["usbfilter", "add", "0",
+                    "--target", :id,
+                    "--name", filter_name,
+                    "--vendorid", vendor_id,
+                    "--productid", product_id
+                    ]
+    end
+  end
 
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-  # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
-    sudo apt-get update
-    #sudo apt-get install -y apache2
-    # Point Grey SDK requirements
-    sudo apt-get install -y libraw1394-11 libgtkmm-2.4-1c2a libglademm-2.4-1c2a libgtkglextmm-x11-1.2-dev libgtkglextmm-x11-1.2 libusb-1.0-0
-    source /vagrant/src/machineSetup/updateGrub.sh
-  SHELL
+  # rad VM configuration
+  config.vm.define "rad" do |rad|
+    rad.vm.hostname = "rad"
+    rad.vm.provider "virtualbox" do |vb|
+      # Display the VirtualBox GUI when booting the machine
+      vb.gui = true
+
+      vb.name = "murs_rad"
+    
+      # Customize the amount of memory on the VM:
+      vb.memory = 2048
+      vb.cpus = 2
+      vb.customize ["modifyvm", :id, "--vram", 64]
+      vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
+    end
+    rad.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+    SHELL
+  end
+
+  # context VM configuration
+  config.vm.define "context" do |context|
+    context.vm.hostname = "context"
+    context.vm.provider "virtualbox" do |vb|
+      # Display the VirtualBox GUI when booting the machine
+      vb.gui = true
+
+      vb.name = "murs_context"
+    
+      # Customize the amount of memory on the VM:
+      vb.memory = 2048
+      vb.cpus = 2
+      vb.customize ["modifyvm", :id, "--vram", 64]
+      vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
+
+      # Enable USB
+      vb.customize ["modifyvm", :id, "--usb", "on"]
+      # Enable USB3
+      vb.customize ["modifyvm", :id, "--usbxhci", "on"]
+      # Add a USB filter for the Point Grey Grasshopper3
+      better_usbfilter_add(vb, context.vm.hostname, "1e10", "3300", "Point Grey Grasshopper3")
+    end
+    context.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      # Point Grey SDK requirements
+      sudo apt-get install -y libraw1394-11 libgtkmm-2.4-1c2a libglademm-2.4-1c2a libgtkglextmm-x11-1.2-dev libgtkglextmm-x11-1.2 libusb-1.0-0
+      source /vagrant/src/machineSetup/updateGrub.sh
+    SHELL
+  end
+
+
 end

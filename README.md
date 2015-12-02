@@ -1,29 +1,45 @@
 # DNDO MURS - Mobile Urban Radiation Search
 
-## Setting up the Vagrant VM
-This requires Vagrant and VirtualBox > 5.0!
-Vagrant: http://www.vagrantup.com/downloads
-Note that Vagrant must be > 1.7.3 in order to support VirtualBox 5
-On Mac OSX using homebrew, instead of installing from a download, one can use:
-`brew update && brew cask install vagrant`
+## Setting up the Vagrant VMs
+### The Vagrantfile defines two VMs:
+1. 'rad' for the radiation detection system
+2. 'context' for the contextual sensor system
 
-VirtualBox: https://www.virtualbox.org/wiki/Downloads
-For VirtualBox, you also need to install the Extension Pack
+### There are some differences in vagrant usage with a multi machine configuration that should be noted
+1. Standard vagrant commands (up, halt, destroy, etc.) will apply to both machines
+2. To perform a vagrant command on a specific machine, append the machine name after the command, e.g. `vagrant up rad`
+3. `vagrant ssh` doesn't work, you must specify the machine, e.g. `vagrant ssh rad`
 
+### Other notes:
+1. Both VMs map the path /vagrant to the murs repo folder on the host
+
+### Prerequsites - VirtualBox > 5.0 and Vagrant > 1.7.3
+* VirtualBox
+  * Download and install both the platform package and the Extension Pack from [here](https://www.virtualbox.org/wiki/Downloads)
+  * Alternately, on Mac OSX using homebrew cask:
+    * `brew update && brew cask install virtualbox && brew cask install virtualbox-extension-pack`
+
+* Vagrant
+  * Download and install from [here](http://www.vagrantup.com/downloads)
+  * Alternately, on Mac OSX using homebrew cask:
+    * `brew update && brew cask install vagrant`
+
+### Building the rad VM
 1. Build the VM - from the root of the murs repo
-  * `vagrant up`
+  * `vagrant up rad`
 2. SSH into the VM
-  * `vagrant ssh`
-3. Setup the usbfs memory size
-  * `source /vagrant/src/machineSetup/updateGrub.sh`
-4. Install the Point Grey software
-  * `source /vagrant/src/machineSetp/installFlyCapture`
-    * Yes for all prompts, use 'vagrant' for the user to be added to the udev rule group
+  * `vagrant ssh rad`
 
-### To add a USB device to the VM:
-1. Shutdown the vm - `vagrant halt`
-2. In the VirtualBox manager find murs_contextual_vm and select Settings
-3. Select Ports from the top bar, then the USB tab.
-4. Enable the USB controller then select USB 3.0
-5. To the right of the Device Filters box, select the icon with a plus symbol
-6. Select the device, e.g. Point Grey Grasshopper3
+### Building the contextual VM
+1. Build the VM - from the root of the murs repo
+  * `vagrant up context`
+2. SSH into the VM
+  * `vagrant ssh context`
+3. Install the Point Grey software
+  * `source /vagrant/src/machineSetup/installFlyCapture.sh`
+    * Yes for all prompts, use 'vagrant' for the user to be added to the udev rule group
+4. Restart the VM
+  * `exit`
+  * `vagrant halt context`
+  * `vagrant up context`
+
