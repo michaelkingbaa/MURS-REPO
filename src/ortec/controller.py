@@ -79,7 +79,7 @@ class ByteRegister(object):
                 
 
     def get_value(self):
-        print 'Getting {0} value:  Len={1}, bytes: {2}'.format(self._name,len(self._bytes),repr(self._bytes))
+        #print 'Getting {0} value:  Len={1}, bytes: {2}'.format(self._name,len(self._bytes),repr(self._bytes))
         if len(self._bytes) ==1:
             val= unpack('B',self._bytes)[0]
             print val
@@ -206,7 +206,7 @@ class ControlRegister(object):
     def set_fine_gain(self,fg):
         if fg >=0.4 and fg <=1.2:
             index=self._regName.index('fine_gain_set')
-            val=int(fg*2**22)
+            val=int(fg*2**22) | 1<<23
             self._byteList[index].set_value(val)
         else:
             raise ValueError('fg must be between 0.4-1.2')
@@ -319,7 +319,7 @@ class FPGA(object):
 
         
     def write_control_register(self):
-        tmp=self.read_control_register()
+        #tmp=self.read_control_register()
         cr=self._controlRegister.get_byte_string()
         msg=self.CMD_SETCONTROL+cr
         self._cnct.bulkWrite(self.eP_SEND,msg,self.TIMEOUT)
@@ -360,7 +360,10 @@ class FPGA(object):
         return self._controlRegister.get_hv_actual()
 
     def set_fine_gain(self,value):
+        print 'in FPGA...set fine gain to: ',value
         self._controlRegister.set_fine_gain(value)
+        self.write_control_register()
+        return self.get_fine_gain()
 
     def get_fine_gain(self):
         return self._controlRegister.get_fine_gain()
@@ -560,6 +563,7 @@ class DigiBase(object):
         return self._fpga.get_hv_actual()
     
     def set_fine_gain(self,value):
+        print 'Setting Fine Gain to: ',value
         self._fpga.set_fine_gain(value)
 
     def get_fine_gain(self):

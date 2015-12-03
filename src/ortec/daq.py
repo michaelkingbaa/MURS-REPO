@@ -92,48 +92,48 @@ if __name__ == '__main__':
     parser.add_argument("--spoof_digibase",default=False,action="store_true",
                         help="Use this to check code without having digibase connected")
     args=parser.parse_args()
-    if len(sys.argv) <=1:
-        parser.print_help()
-        exit()
-    print '##############################################################################'
-    print '####################### Controller Acquisition Setup #########################'
-    print '##############################################################################'
-    
-    if args.check:
-        print 'Performing Check to see if we can connect to Digibases'
-        dbc=DigiBaseController()
-        exit()
-
-    if not minAcqTime <= args.time <=maxAcqTime:
-        raise RuntimeError('time: {0}  must be between {1} - {2} seconds. (use -h for help)'.format(args.time,minAcqTime,maxAcqTime))
-
-    if args.sample_duration>args.time:
-        raise RuntimeError('Sample Duration must be less than Acquisition Time')
-    if args.sample_duration<minSamplePeriod:
-        raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
-    if args.log_period<=minLogPeriod:
-        raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
-
-    if not os.path.exists(os.path.abspath(args.directory)):
-        raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(args.directory))
-
-    fileName=os.path.join(os.path.abspath(args.directory),args.file)
-
-    if os.path.exists(fileName):
-        warnings.warn('Log file already exists!! file: {0} may be overwritten!!'.format(fileName))
-
-    if not os.path.exists(os.path.abspath(args.config_file)):
-        raise RuntimeError('Detector Configuration File: {0} Not Found!!'.format(args.config_file))
-
-    print 'Acquisition Time set to: {0} s'.format(args.time)
-    print 'Sample Duration set to {0} s'.format(args.sample_duration)
-    print 'Log file: {0}'.format(fileName)
-    print 'Writing Log to Disk every {0} seconds'.format(args.log_period)
-        
-    nSamples=int(args.time*1.0/args.sample_duration)
-    nLogSamples=max(int(args.log_period/args.sample_duration),1)
-    print 'Logging data every {0} samples = {1} seconds'.format(nLogSamples,args.log_period)
-    print 'Detector Configuration File: {0}'.format(args.config_file)
+    # if len(sys.argv) <=1:
+    #     parser.print_help()
+    #     exit()
+    # print '##############################################################################'
+    # print '####################### Controller Acquisition Setup #########################'
+    # print '##############################################################################'
+    #
+    # if args.check:
+    #     print 'Performing Check to see if we can connect to Digibases'
+    #     dbc=DigiBaseController()
+    #     exit()
+    #
+    # if not minAcqTime <= args.time <=maxAcqTime:
+    #     raise RuntimeError('time: {0}  must be between {1} - {2} seconds. (use -h for help)'.format(args.time,minAcqTime,maxAcqTime))
+    #
+    # if args.sample_duration>args.time:
+    #     raise RuntimeError('Sample Duration must be less than Acquisition Time')
+    # if args.sample_duration<minSamplePeriod:
+    #     raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
+    # if args.log_period<=minLogPeriod:
+    #     raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
+    #
+    # if not os.path.exists(os.path.abspath(args.directory)):
+    #     raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(args.directory))
+    #
+    # fileName=os.path.join(os.path.abspath(args.directory),args.file)
+    #
+    # if os.path.exists(fileName):
+    #     warnings.warn('Log file already exists!! file: {0} may be overwritten!!'.format(fileName))
+    #
+    # if not os.path.exists(os.path.abspath(args.config_file)):
+    #     raise RuntimeError('Detector Configuration File: {0} Not Found!!'.format(args.config_file))
+    #
+    # print 'Acquisition Time set to: {0} s'.format(args.time)
+    # print 'Sample Duration set to {0} s'.format(args.sample_duration)
+    # print 'Log file: {0}'.format(fileName)
+    # print 'Writing Log to Disk every {0} seconds'.format(args.log_period)
+    #
+    # nSamples=int(args.time*1.0/args.sample_duration)
+    # nLogSamples=max(int(args.log_period/args.sample_duration),1)
+    # print 'Logging data every {0} samples = {1} seconds'.format(nLogSamples,args.log_period)
+    # print 'Detector Configuration File: {0}'.format(args.config_file)
 
     print '###############################################################################'
     print '######################### Class Constructors ##################################'
@@ -143,23 +143,24 @@ if __name__ == '__main__':
         dbc=DigiBaseSpoofer()
     else:
         dbc=DigiBaseController()
-    dLog=DataLogger(fileName,nLogSamples)
+    # dLog=DataLogger(fileName,nLogSamples)
 
     print '###############################################################################'
     print '######################### Applying Settings  ##################################'
     print '###############################################################################'
 
     #Getting Detector Settings from .ini file
-    with open(args.config_file,'r') as f:
-        data=json.load(f)
-
-        hv_setting=data[u'hv_setting']
-        gain_stab_pars=data[u'gain_stab_pars']
-        fine_gain=data[u'fine_gain']
+    # with open(args.config_file,'r') as f:
+    #     data=json.load(f)
+    #
+    #     hv_setting=data[u'hv_setting']
+    #     gain_stab_pars=data[u'gain_stab_pars']
+    #     fine_gain=data[u'fine_gain']
 
     #Making sure there is a setting in .ini for each digibase connected otherwise setting default
     for det in dbc.getDetList():
 
+        import pdb; pdb.set_trace()
         #Applying HV Settings
         if det in hv_setting:
             print 'Setting det: {0} HV to: {0} V'.format(det,hv_setting[det])
