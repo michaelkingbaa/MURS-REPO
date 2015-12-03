@@ -81,6 +81,12 @@ Vagrant.configure(2) do |config|
     end
   end
 
+  # common vm configuration
+  config.vm.provision "shell", inline: <<-SHELL
+    groupadd -f murs
+    usermod -g murs vagrant    
+  SHELL
+
   # rad VM configuration
   config.vm.define "rad" do |rad|
     rad.vm.hostname = "rad"
@@ -120,14 +126,23 @@ Vagrant.configure(2) do |config|
       vb.customize ["modifyvm", :id, "--usb", "on"]
       # Enable USB3
       vb.customize ["modifyvm", :id, "--usbxhci", "on"]
-      # Add a USB filter for the Point Grey Grasshopper3
-      better_usbfilter_add(vb, context.vm.hostname, "1e10", "3300", "Point Grey Grasshopper3")
+      # Add a USB filter for the Point Grey Grasshopper3 Camera
+      better_usbfilter_add(vb, context.vm.hostname, "1e10", "3300", "Point Grey Grasshopper3 Camera")
+      # Add a USB filter for the xSens GPS/INS
+      better_usbfilter_add(vb, context.vm.hostname, "2639", "0017", "xSens MTi-G-700 GPS-INS")
     end
     context.vm.provision "shell", inline: <<-SHELL
       sudo apt-get update
       # Point Grey SDK requirements
       sudo apt-get install -y libraw1394-11 libgtkmm-2.4-1c2a libglademm-2.4-1c2a libgtkglextmm-x11-1.2-dev libgtkglextmm-x11-1.2 libusb-1.0-0
       source /vagrant/src/machineSetup/updateGrub.sh
+      # xSens SDK requirements
+      sudo apt-get install -y realpath sharutils liblapack3
+      # xSens firmware updater requirements
+      sudo apt-get install -y libssh2-1
+
+      # Add to dialout group to access xSens
+      usermod -a -G dialout vagrant
     SHELL
   end
 
