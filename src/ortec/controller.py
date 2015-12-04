@@ -252,7 +252,7 @@ class ControlRegister(object):
     def set_acq_start(self,value):
         if value is 0 or value is 1:
             index=self._regName.index('control')
-            self._byteList[index].set_bit(1,1)
+            self._byteList[index].set_bit(1,value)
         else:
             raise ValueError('acq_start bit must be 1 or 0')
             
