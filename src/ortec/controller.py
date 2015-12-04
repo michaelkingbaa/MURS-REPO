@@ -729,6 +729,11 @@ class DigiBaseSpoofer(object):
         return
     def set_fine_gain(self,det,value):
         return
+
+    def do_startup_checks(self):
+        tHold=5
+        print 'Waiting {0} seconds for Dets to Stabilize'.format(tHold)
+        time.sleep(5)
         
 if __name__=="__main__":
    sys.exit('Cannot call Controller from command line...Try using python daq.py -h for instructions')
