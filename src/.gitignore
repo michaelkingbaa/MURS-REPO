@@ -1,5 +1,5 @@
 # Python compiled
-.py[cod]
+*.py[cod]
 
 # Compiled Object files
 *.slo
