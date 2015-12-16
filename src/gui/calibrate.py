@@ -25,10 +25,12 @@ class AcquisitionThread(QtCore.QThread):
 #        for s in range(1):
         while self._runFlag:
             #print 'Acquiring Sample {0}'.format(s)
-            print 'Acquiring Sample'
+            #print 'Acquiring Sample'
             try:
-                pkt=self._socket.recv(timeout=3)
+                print 'recieving packets'
+                pkt=self._socket.recv()
             except:
+                print 'got an exception'
                 break
             topic=pkt[:5]
             msg=pkt[5:]
