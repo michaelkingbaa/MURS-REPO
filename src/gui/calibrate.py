@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../')
 from ortec.controller import DigiBaseController
 from pyqtgraph.Qt import QtGui,QtCore
 import pyqtgraph as pg

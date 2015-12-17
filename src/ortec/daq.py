@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 '''
 Created by S. Henshaw 21 Oct. 2015
-This is the main daq code for running ortec digibases.  It uses multiprocessing as well queue
+This is the main daq code for running ortec digibases.  It uses multiprocessing as well as queue
 to ensure minimal loss of data and dead time.
 
 '''
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     parser.add_argument("-t","--time",default=defaultSamplePeriod,type=float,
                         help="Total Acquisition time in seconds. Must be between {0}-{1} seconds".format(minAcqTime,maxAcqTime))
     parser.add_argument("--sample_duration",default=defaultSamplePeriod,type=float,
-                        help="Time Period for each sample in seconds.  Must be less than total time and greater than {0} seconds. (see -h for help)".format(minSamplePeriod))
+                        help="Time Period for each sample in seconds. Must be less than total time and greater than {0} seconds. (see -h for help)".format(minSamplePeriod))
     parser.add_argument("--log_period",default=defaultLogPeriod,type=float,
                         help="Log Buffer Length in seconds.  Must be greater than {0} seconds".format(minLogPeriod))
     parser.add_argument("-f","--file",default=defaultFileName,type=str,
@@ -108,13 +108,13 @@ if __name__ == '__main__':
     
     if not minAcqTime <= args.time <=maxAcqTime:
         raise RuntimeError('time: {0}  must be between {1} - {2} seconds. (use -h for help)'.format(args.time,minAcqTime,maxAcqTime))
-    
+
     if args.sample_duration>args.time:
         raise RuntimeError('Sample Duration must be less than Acquisition Time')
     if args.sample_duration<minSamplePeriod:
         raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
     if args.log_period<=minLogPeriod:
-        raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
+        raise RuntimeError('Log Period must be greater than {0} seconds'.format(minLogPeriod))
     
     if not os.path.exists(os.path.abspath(args.directory)):
         raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(args.directory))

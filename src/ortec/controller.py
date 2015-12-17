@@ -22,7 +22,7 @@ class BitRegister(object):
         #initByte is a bytestring
         self._name=name
         self._byte=initByte
-        return 
+        return
 
     def set_bit(self,index,value):
         #index = 0-7 and value is True/False (1/0)
@@ -33,24 +33,25 @@ class BitRegister(object):
             tmp|=mask
         self._byte=chr(tmp)
         return
+
     def set_value(self,intVal):
         if type(intVal) is not type(int()):
             raise ValueError('intValue must be of type int')
         self._byte=chr(intVal)
-    
-    def get_bytes(self):
-        return self._byte
-
-    def set_bytes(self,bytestr):
-        self._byte=bytestr
-
-    def get_name(self):
-        return self._name
 
     def get_value(self):
         #Returns a list of bit values
         tmp=[ord(self._byte) & 2**i !=0 for i in range(8)]
         return tmp
+
+    def set_bytes(self,bytestr):
+        self._byte=bytestr
+
+    def get_bytes(self):
+        return self._byte
+
+    def get_name(self):
+        return self._name
     
 class ByteRegister(object):
     def __init__(self,name,initBytes):
