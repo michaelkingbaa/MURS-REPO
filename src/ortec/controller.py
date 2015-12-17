@@ -22,7 +22,7 @@ class BitRegister(object):
         #initByte is a bytestring
         self._name=name
         self._byte=initByte
-        return 
+        return
 
     def set_bit(self,index,value):
         #index = 0-7 and value is True/False (1/0)
@@ -33,24 +33,25 @@ class BitRegister(object):
             tmp|=mask
         self._byte=chr(tmp)
         return
+
     def set_value(self,intVal):
         if type(intVal) is not type(int()):
             raise ValueError('intValue must be of type int')
         self._byte=chr(intVal)
-    
-    def get_bytes(self):
-        return self._byte
-
-    def set_bytes(self,bytestr):
-        self._byte=bytestr
-
-    def get_name(self):
-        return self._name
 
     def get_value(self):
         #Returns a list of bit values
         tmp=[ord(self._byte) & 2**i !=0 for i in range(8)]
         return tmp
+
+    def set_bytes(self,bytestr):
+        self._byte=bytestr
+
+    def get_bytes(self):
+        return self._byte
+
+    def get_name(self):
+        return self._name
     
 class ByteRegister(object):
     def __init__(self,name,initBytes):
@@ -191,6 +192,12 @@ class ControlRegister(object):
                 settings[reg.get_name()]=reg.get_value()
         return settings
     
+    def get_byte_string(self):
+        bytes=[i.get_bytes() for i in self._byteList]
+        #print bytes
+        return ''.join(bytes)
+
+    #### High Voltage ####
     def set_hv_actual(self,volts):
         hvsetting=int(volts/1.25)
         index=self._regName.index('hv_set')
@@ -203,6 +210,15 @@ class ControlRegister(object):
         tmp_hi=self._byteList[index].get_value()[5:7]
         return (tmp_lo | tmp_hi[0]<<8 | tmp_hi[1]<<9)*1.25#return value in volts
 
+    def set_enable_hv(self,value):
+        index=self._regName.index('control')
+        if value in [0,1]:
+            self._byteList[index].set_bit(6,value)
+            self._byteList[self._regName.index('control2')].set_bit(2,value)
+        else:
+            raise ValueError('set_enable_hv value must be 0,1')
+
+    #### Fine Gain ####
     def set_fine_gain(self,fg):
         if fg >=0.4 and fg <=1.2:
             index=self._regName.index('fine_gain_set')
@@ -216,25 +232,13 @@ class ControlRegister(object):
         tmp=self._byteList[index].get_value()/2.**22
         return tmp
         
-    def get_byte_string(self):
-        bytes=[i.get_bytes() for i in self._byteList]
-        #print bytes
-        return ''.join(bytes)
-    
-    def set_enable_hv(self,value):
-        index=self._regName.index('control')
-        if value in [0,1]:
-            self._byteList[index].set_bit(6,value)
-            self._byteList[self._regName.index('control2')].set_bit(2,value)
-        else:
-            raise ValueError('set_enable_hv value must be 0,1')
-
+    #### Gain Stabalization ####
     def set_enable_gain_stab(self,value):
         index=self._regName.index('control')
         if value in [0,1]:
             self._byteList[index].set_bit(4,value)
         else:
-            raise ValueError('set_enable_hv value must be 0,1')
+            raise ValueError('set_enable_gain_stab value must be 0,1')
 
     def set_gain_stab_pars(self,minVal, midVal, maxVal):
         names=['gain_stab_min','gain_stab_mid','gain_stab_max']
@@ -244,7 +248,8 @@ class ControlRegister(object):
             for i,v in enumerate(pars):
                 index=self._regName.index(names[i])
                 self._byteList[index].set_value(v)
-        
+
+    #### Misc ####
     def get_mem_size(self):
         index=self.regName.index('mem_size')
         return self._byteList[index].get_bytes()
@@ -256,7 +261,7 @@ class ControlRegister(object):
         else:
             raise ValueError('acq_start bit must be 1 or 0')
             
-    ### MARK INCORPORATING THE OVERFLOW ##
+    ## MARK INCORPORATING THE OVERFLOW ##
     def set_enable_overflow(self,value):
         index=self._regName.index('control2')
         if value in [0,1]:
