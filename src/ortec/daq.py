@@ -27,7 +27,6 @@ class WriteToFileProcess(mp.Process):
 
         self._q=q
         self._logger=logger
-
         
     def run(self):
         while not self.exit.is_set():
