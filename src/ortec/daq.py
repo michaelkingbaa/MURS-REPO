@@ -121,8 +121,8 @@ if __name__ == '__main__':
     fileName=os.path.join(os.path.abspath(args.directory),args.file)
     
     if os.path.exists(fileName):
-        warnings.warn('Log file already exists!! file: {0} may be overwritten!!'.format(fileName))
-        
+        print 'Log file already exists!! file will be overwritten!!'.format(fileName)
+
     if not os.path.exists(os.path.abspath(args.config_file)):
         raise RuntimeError('Detector Configuration File: {0} Not Found!!'.format(args.config_file))
     
@@ -164,7 +164,7 @@ if __name__ == '__main__':
         #import pdb; pdb.set_trace()
         #Applying HV Settings
         if det in hv_setting:
-            print 'Setting det: {0} HV to: {0} V'.format(det,hv_setting[det])
+            print 'Setting HV for {0} to: {1} V'.format(det,hv_setting[det])
             dbc.setHV(det,hv_setting[str(det)])
         else:
             warnings.warn('{0} does not contain HV setting entry for det: {1}...setting to default 1000V'.format(args.config_file,det))

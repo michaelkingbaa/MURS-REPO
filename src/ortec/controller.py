@@ -83,15 +83,15 @@ class ByteRegister(object):
         #print 'Getting {0} value:  Len={1}, bytes: {2}'.format(self._name,len(self._bytes),repr(self._bytes))
         if len(self._bytes) ==1:
             val= unpack('B',self._bytes)[0]
-            print val
+            #print val
             return val
         elif len(self._bytes)==2:
             val= unpack('H',self._bytes)[0]
-            print val
+            #print val
             return val
         elif len(self._bytes)==4:
             val=unpack('I',self._bytes)[0]
-            print val
+            #print val
             return val
         else:
             raise Exception('Bytes wrong length: {0}'.format(len(self._bytes)))
@@ -194,7 +194,7 @@ class ControlRegister(object):
     
     def get_byte_string(self):
         bytes=[i.get_bytes() for i in self._byteList]
-        #print bytes
+        # print bytes
         return ''.join(bytes)
 
     #### High Voltage ####
@@ -250,9 +250,11 @@ class ControlRegister(object):
                 self._byteList[index].set_value(v)
 
     #### Misc ####
-    def get_mem_size(self):
-        index=self.regName.index('mem_size')
-        return self._byteList[index].get_bytes()
+
+##### No longer called ######
+#    def get_mem_size(self):       
+#        index=self.regName.index('mem_size')
+#        return self._byteList[index].get_bytes()
         
     def set_acq_start(self,value):
         if value is 0 or value is 1:
@@ -302,7 +304,7 @@ class FPGA(object):
         
 
         
-    def read_control_register(self):
+    def read_control_register(self): #this is called a lot. Unnecessary?
         self._cnct.bulkWrite(self.eP_SEND,self.CMD_SHOWCONTROL,self.TIMEOUT)
         r=self._cnct.bulkRead(self.eP_RECV,80,self.TIMEOUT)
         return r
@@ -330,7 +332,7 @@ class FPGA(object):
         self._cnct.bulkWrite(self.eP_SEND,msg,self.TIMEOUT)
         self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
         CR=self.read_control_register()
-        print 'Control Register Written Successfully!'
+        #print 'Control Register Written Successfully!'
         self._controlRegister.set_from_bytes(CR)
 
     def clear_data(self):
@@ -338,7 +340,7 @@ class FPGA(object):
         self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
 
     def show_data(self):
-#        nBytes=self._controlRegister.get_mem_size()
+#        nBytes=self._controlRegister.get_mem_size() 
         nBytes=4097
         self._cnct.bulkWrite(self.eP_SEND,self.CMD_SHOWDATA,self.TIMEOUT)
         r=self._cnct.bulkRead(self.eP_RECV,nBytes,self.TIMEOUT)
@@ -365,7 +367,7 @@ class FPGA(object):
         return self._controlRegister.get_hv_actual()
 
     def set_fine_gain(self,value):
-        print 'in FPGA...set fine gain to: ',value
+        #print 'in FPGA...set fine gain to: ',value
         self._controlRegister.set_fine_gain(value)
         self.write_control_register()
         return self.get_fine_gain()
@@ -385,7 +387,6 @@ class FPGA(object):
         self._controlRegister.set_gain_stab_pars(minVal,midVal,maxVal)
         self.write_control_register()
 
-    
 class MicroController(object):
     #Microcontroller EndPoints  from ORTEC Docs
     eP_SEND=1
@@ -422,11 +423,11 @@ class MicroController(object):
             try:
                 self.send(self.FPGA_TEST)
                 self.send(self.FPGA_RESET)
-#                print '\tFPGA is configured'
+                # print '\tFPGA is configured'
                 return FPGA(self._cnct)
                 break
             except RuntimeError as e:
-                print 'initalize FPGA Exception: ', e
+                # print 'initalize FPGA Exception: ', e
                 self.send(self.FPGA_INIT)
                 with open(self.rbfFile,'rb') as f:
                     self.send(self.FPGA_LOAD,data=f.read())
@@ -466,7 +467,6 @@ class MicroController(object):
         #Packing optional data into message (passed as argument)
         dpkts=[data[i:i+self.MAX_MSG_SIZE] for i in range(0,len(data),self.MAX_MSG_SIZE)]
 
-
         #Sending Packets and getting response
         if len(dpkts)>0:
             for i in dpkts:
@@ -499,7 +499,7 @@ class DigiBase(object):
     vID=2605
     pID=31
     def __init__(self,sn=None,dev=None):
-        print 'Constructing digiBase object with S/N: {0}'.format(sn)
+        #print 'Constructing digiBase object with S/N: {0}'.format(sn)
         #self._usbCon=USBContext()
         #self._dev=self._usbCon.getByVendorIDAndProductID(self.vID,self.pID)
         #if self._dev is  None:
@@ -507,13 +507,13 @@ class DigiBase(object):
 
         #print 'Connected to Digibase S/N: ',self._dev.getSerialNumber()
         if sn is None or dev is None:
-            raiseRuntimeError('DigiBase() must have sn an dev in constructor')
+            raiseRuntimeError('DigiBase() must have sn anD dev in constructor')
         self._dev=dev
         self._cnct=self._dev.open()
         self._cnct.claimInterface(0)
         self._microCon=MicroController(self._cnct)
         self._fpga=self._microCon.initializeFPGA()
-        print 'WARNING!!! Default HV is set to 0, use set_hv(volts=val) to set to appropriate value'
+        # print 'WARNING!!! Default HV is set to 0, use set_hv(volts=val) to set to appropriate value'
 
     def enable_hv(self):
         self._fpga.enable_hv()
@@ -522,53 +522,56 @@ class DigiBase(object):
         self._fpga.disable_hv()
 
     def set_hv(self,volts):
-        vold=self._fpga.get_hv()
+	#Parameters for stepping voltage
+        vmin=0#volts
+        vmax=1200#volts
 
+        vold=self._fpga.get_hv()
         volts=float(volts)
-        print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
-        if not (volts >=0 and volts <=1200):
+        #print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
+        if not (volts >=vmin and volts <=vmax):
             raise ValueError('cannot set_hv to volts={0}...Range is {1}-{2} V'.format(volts,vmin,vmax))
         val=self._fpga.set_hv(volts)
         return val 
 
+     ##### no longer called; commented out #####        
+#    def set_hv_steps(self,volts):
+#        #Parameters for stepping HV
+#        vmin=0#volts
+#        vmax=1200#volts
+#        vstep=100.#Volts
+#        tstep=1e-4#seconds
         
-    def set_hv_steps(self,volts):
-        #Parameters for stepping HV
-        vmin=0#volts
-        vmax=1200#volts
-        vstep=100.#Volts
-        tstep=1e-4#seconds
-        
-        vold=self._fpga.get_hv()
+#        vold=self._fpga.get_hv()
 
-        volts=float(volts)
-        print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
-        if not (volts >=0 and volts <=1200):
-            raise ValueError('cannot set_hv to volts={0}...Range is {1}-{2} V'.format(volts,vmin,vmax))
+#        volts=float(volts)
+#        #print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
+#        if not (volts >=0 and volts <=1200):
+#            raise ValueError('cannot set_hv to volts={0}...Range is {1}-{2} V'.format(volts,vmin,vmax))
         
-        nSteps=(volts-vold)/vstep
-        sign=np.sign(nSteps)
-        nSteps=int(max(abs(nSteps),1))
+#        nSteps=(volts-vold)/vstep
+#        sign=np.sign(nSteps)
+#        nSteps=int(max(abs(nSteps),1))
 
         #Stepping Voltage by 10 V increments
-        for i in xrange(nSteps):
-            v=vold+i*vstep*sign
-            print 'Stepping Voltage to: {0} V'.format(v)
-            self._fpga.set_hv(v)
-            time.sleep(tstep)
+#        for i in xrange(nSteps):
+#            v=vold+i*vstep*sign
+#            # print 'Stepping Voltage to: {0} V'.format(v)
+#            self._fpga.set_hv(v)
+#            time.sleep(tstep)
 
-        #Now we are sure we are within 10 V so set to actual value
-        val=self._fpga.set_hv(volts)
-        if nSteps>3:
-            print 'Letting HV stabilize for 5 seconds'
-            time.sleep(5)
-        return val
+#        #Now we are sure we are within 10 V so set to actual value
+#        val=self._fpga.set_hv(volts)
+#        if nSteps>3:
+#            print 'Letting HV stabilize for 5 seconds'
+#            time.sleep(5)
+#        return val
 
     def get_hv(self):
         return self._fpga.get_hv_actual()
     
     def set_fine_gain(self,value):
-        print 'Setting Fine Gain to: ',value
+        #print 'Setting Fine Gain to: ',value
         self._fpga.set_fine_gain(value)
 
     def get_fine_gain(self):
@@ -584,7 +587,7 @@ class DigiBase(object):
         d=self._fpga.show_data()
         reg=self._fpga.read_control_register()
         
-        print repr(reg[0:4]),repr(reg[42:44])
+        # print repr(reg[0:4]),repr(reg[42:44])
         tmp=struct.unpack('%dI'%(len(d)/4),d)
         return tmp
 
@@ -606,19 +609,19 @@ class DigiBaseController(object):
     vID=2605
     pID=31
     def __init__(self):
-        print 'Constructing DigiBaseController()'
+        #print 'Constructing DigiBaseController()'
         self._dets={}
         self._acquireFlag=False
         self._usbCon=USBContext()
         devlist=self._usbCon.getDeviceList()
         self._dev={}
-        print 'Found {0} USB Connections...Scanning for Digibases'.format(len(devlist))
+        #print 'Found {0} USB Connections...Scanning for Digibases'.format(len(devlist))
         for dev in devlist:
             try:
                 vid=dev.getVendorID()
                 pid=dev.getProductID()
                 if vid == self.vID and pid == self.pID:
-                    print 'DIGIBASE Found...getting S/N'
+                    #print 'DIGIBASE Found...getting S/N'
                     sn=dev.getSerialNumber()
                     print 'Found Digibase with SN: {0}'.format(sn)
                     self._dev[sn]=dev
@@ -630,7 +633,7 @@ class DigiBaseController(object):
             raise RuntimeError("No Digibase Connected")
         else:
             for sn,dev in self._dev.items():
-                print 'Getting Serial Number and Constructing Digibase for: ',sn
+                #print 'Getting Serial Number and Constructing Digibase for: ',sn
                 self._dets[sn]=DigiBase(sn,dev)
 
     def start_acquisition(self):
@@ -667,7 +670,6 @@ class DigiBaseController(object):
     def getDet(self,detName):
         return self._dets[detName]
 
-    
     def setHV(self,det,volts):
         if det in self._dets.keys():
             self._dets[det].set_hv(volts)
