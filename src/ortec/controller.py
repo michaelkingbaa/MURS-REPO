@@ -83,15 +83,12 @@ class ByteRegister(object):
         #print 'Getting {0} value:  Len={1}, bytes: {2}'.format(self._name,len(self._bytes),repr(self._bytes))
         if len(self._bytes) ==1:
             val= unpack('B',self._bytes)[0]
-            print val
             return val
         elif len(self._bytes)==2:
             val= unpack('H',self._bytes)[0]
-            print val
             return val
         elif len(self._bytes)==4:
             val=unpack('I',self._bytes)[0]
-            print val
             return val
         else:
             raise Exception('Bytes wrong length: {0}'.format(len(self._bytes)))
@@ -281,7 +278,7 @@ class FPGA(object):
     CMD_SHOWDATA=chr(128)
     
     def __init__(self,cnct):
-#        print '\tConstructing FPGA...'
+#        #print '\tConstructing FPGA...'
         self._cnct=cnct
 
         #Getting Initial Values from the FPGA
@@ -330,7 +327,7 @@ class FPGA(object):
         self._cnct.bulkWrite(self.eP_SEND,msg,self.TIMEOUT)
         self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
         CR=self.read_control_register()
-        print 'Control Register Written Successfully!'
+        #print 'Control Register Written Successfully!'
         self._controlRegister.set_from_bytes(CR)
 
     def clear_data(self):
@@ -365,7 +362,7 @@ class FPGA(object):
         return self._controlRegister.get_hv_actual()
 
     def set_fine_gain(self,value):
-        print 'in FPGA...set fine gain to: ',value
+        #print'in FPGA...set fine gain to: ',value
         self._controlRegister.set_fine_gain(value)
         self.write_control_register()
         return self.get_fine_gain()
@@ -513,7 +510,7 @@ class DigiBase(object):
         self._cnct.claimInterface(0)
         self._microCon=MicroController(self._cnct)
         self._fpga=self._microCon.initializeFPGA()
-        print 'WARNING!!! Default HV is set to 0, use set_hv(volts=val) to set to appropriate value'
+        #print 'WARNING!!! Default HV is set to 0, use set_hv(volts=val) to set to appropriate value'
 
     def enable_hv(self):
         self._fpga.enable_hv()
@@ -584,7 +581,7 @@ class DigiBase(object):
         d=self._fpga.show_data()
         reg=self._fpga.read_control_register()
         
-        print repr(reg[0:4]),repr(reg[42:44])
+        #print repr(reg[0:4]),repr(reg[42:44])
         tmp=struct.unpack('%dI'%(len(d)/4),d)
         return tmp
 
@@ -605,7 +602,7 @@ class DigiBase(object):
 class DigiBaseController(object):
     vID=2605
     pID=31
-    def __init__(self):
+    def __init__(self, DATA_Q, _sentinel):
         print 'Constructing DigiBaseController()'
         self._dets={}
         self._acquireFlag=False
@@ -627,6 +624,7 @@ class DigiBaseController(object):
                 pass
 
         if len(self._dev.keys()) <=0:
+            DATA_Q.put(_sentinel)
             raise RuntimeError("No Digibase Connected")
         else:
             for sn,dev in self._dev.items():

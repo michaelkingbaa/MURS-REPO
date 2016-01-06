@@ -40,49 +40,42 @@ class WriteToFileProcess(mp.Process):
                 print 'Exception occurred'
                 raise 
             
-        #print 'Exiting Logger.run()'
+        print 'Exiting Logger.run()'
         self._logger.cleanup()
 
     def shutdown(self):
         print 'Shutdown initiated'
         self.exit.set()
 
-class Initialization():
-    def __init__(self):
-        #Setting Default Values
-        self.minAcqTime=1#seconds
-        self.maxAcqTime=30*3600#seconds 
+#class Initialization():
+ #   def __init__(self):
+  #      #Setting Default Values
+   #     self.minAcqTime=1#seconds
+    #    self.maxAcqTime=30*3600#seconds 
+#
+ #       self.defaultSamplePeriod=1#seconds
+  #      self.minSamplePeriod=0.1#seconds
+   # 
+     #   self.defaultLogPeriod=300#seconds
+    #    self.minLogPeriod=1#seconds
 
-        self.defaultSamplePeriod=1#seconds
-        self.minSamplePeriod=0.1#seconds
-    
-        self.defaultLogPeriod=300#seconds
-        self.minLogPeriod=1#seconds
+    #timeStart=dt.datetime.utcfromtimestamp(time.time())
+    #timeStart=timeStart.strftime("%Y-%m-%dT%H-%M-%SZ")
+    #defaultFileName='DataLog_{0}.h5'.format(timeStart)
 
-        self.timeStart=dt.datetime.utcfromtimestamp(time.time())
-        self.timeStart=self.timeStart.strftime("%Y-%m-%dT%H-%M-%SZ")
-        self.defaultFileName='DataLog_{0}.h5'.format(self.timeStart)
+    #if os.path.exists(os.path.abspath('./data/')):
+        defaultDirectory='./data/'
+    #else:
+     #   defaultDirectory='./'
 
-        if os.path.exists(os.path.abspath('./data/')):
-            self.defaultDirectory='./data/'
-        else:
-            self.defaultDirectory='./'
+    #defaultConfigFile='./ortec_config_default.ini'
 
-        self.defaultConfigFile='./ortec_config_default.ini'
 
-    #def keywords(self, kwargs):
-        
-
-    
         
 ######################### Main Execution Portion #########################
 ##########################################################################        
-def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
+def daq(**kwargs):
 
-    #DATA_Q is the global queue that sends data to the master thread
-    #_sentinal gets set to end the DATA_Q queue
-    #MESSAGE_Q is the global queue that sends "messages" from the master thread...
-    
 #kwargs can be:
     #check: "Check to see if Digibases are connected"
     
@@ -132,35 +125,31 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
     
     if check:
         print 'Performing Check to see if we can connect to Digibases'
-        dbc=DigiBaseController(DATA_Q,_sentinel)
+        dbc=DigiBaseController()
+        #need to return some error code to master thread
         exit()
     
     if not minAcqTime <= acq_time <=maxAcqTime:
-        DATA_Q.put(_sentinel)
         raise RuntimeError('time: {0}  must be between {1} - {2} seconds. (use -h for help)'.format(acq_time,minAcqTime,maxAcqTime))
-    if sample_duration>acq_time:
-        DATA_Q.put(_sentinel)
-        raise RuntimeError('Sample Duration must be less than Acquisition Time')
 
+    if sample_duration>acq_time:
+        raise RuntimeError('Sample Duration must be less than Acquisition Time')
     if sample_duration<minSamplePeriod:
-        DATA_Q.put(_sentinel)
         raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
     if log_period<=minLogPeriod:
-        DATA_Q.put(_sentinel)   
         raise RuntimeError('Log Period must be greater than {0} seconds'.format(minLogPeriod))
+    
     if not os.path.exists(os.path.abspath(directory)):
-        DATA_Q.put(_sentinel)
         raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(directory))
+    
     fileName=os.path.join(os.path.abspath(directory),data_file)
     
     if os.path.exists(fileName):
         warnings.warn('Log file already exists!! file: {0} may be overwritten!!'.format(fileName))
         
     if not os.path.exists(os.path.abspath(config_file)):
-        DATA_Q.put(_sentinel)
         raise RuntimeError('Detector Configuration File: {0} Not Found!!'.format(config_file))
-
-        
+    
     print 'Acquisition Time set to: {0} s'.format(acq_time)
     print 'Sample Duration set to {0} s'.format(sample_duration)
     print 'Log file: {0}'.format(fileName)
@@ -176,11 +165,7 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
         warnings.warn("Spoofing Digibase Input for debug purposes")
         dbc=DigiBaseSpoofer()
     else:
-        dbc=DigiBaseController(DATA_Q, _sentinel)
-        
-    #check for digibases
-    
-        
+        dbc=DigiBaseController()
     dLog=DataLogger(fileName,nLogSamples)
 
     
@@ -243,35 +228,24 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
     pFile=WriteToFileProcess(qFile,dLog)
     pFile.start()
 
-    
+    #Setting up messaging queue for graphics and/or sending to sigma
+    port = "5556"
+    context = zmq.Context()
+    socket = context.socket(zmq.PUB)
+    socket.bind("tcp://*:%s" % port)
+    topic = 1001
 
     dbc.start_acquisition()
-    
-    
-    #LOOP
     for s in range(nSamples):
-        #check for message to make any changes
-        try:
-            change_message = MESSAGE_Q.get_nowait()
-            #make all changes from messages here
-            print change_message
-        except Queue.Empty:
-            pass
-        
-        
-        #print 'Acquiring Sample {0}'.format(s)
+        print 'Acquiring Sample {0}'.format(s)
 
         #print 'Acquiring Sample {0}'.format(s)
         sample=dbc.getSample(duration=sample_duration)
-        #send data to write file thread
         qFile.put(sample)
-        
-        #send data to master thread
-        DATA_Q.put(sample)
-        
-#        messagedata = json.dumps(sample)
+
+        messagedata = json.dumps(sample)
         #print "%d %s" % (topic, messagedata)
- #       socket.send("%d %s" % (topic, messagedata))
+        socket.send("%d %s" % (topic, messagedata))
 
     print '##########################################################################'
     print '###################### Wrapping up Acquisition ###########################'
@@ -279,7 +253,6 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
     tHold=2#seconds
     print 'Waiting {0} seconds for processes to finish'.format(tHold)
     pFile.shutdown()
-    DATA_Q.put(_sentinel)
     time.sleep(tHold)
     print 'WriteToFileProcess state: {0}'.format(pFile.is_alive())
     print '##########################################################################'

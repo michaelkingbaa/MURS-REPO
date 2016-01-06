@@ -5,7 +5,8 @@ from pyqtgraph.ptime import time
 import zmq
 import json
 import sys
-
+from threading import Thread
+from gui_daq import daq
 
 
 
@@ -59,47 +60,62 @@ class CountsPlotWidget(pg.PlotWidget):
         self.line = self.plot()
 
 
+class dataprocessing:
 
+    def __init__(self): 
+        self.data = {}
+        self.time = {}
+        self.total_counts = {}
+        self.port = '5556'
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.SUB)
+        self.socket.connect("tcp://localhost:%s" % self.port)
+        self.topicfilter = "1001"
+        self.socket.setsockopt(zmq.SUBSCRIBE, self.topicfilter) 
 
-def update():
-    global spectra, data, total_counts, time
-    dict = get_data()
-    color_mask = ['w','b','g','y','r','p']
-    for i,key in enumerate(dict.keys()):
-        if key not in data.keys():
-            data[key] = np.ones(1024)
-            total_counts[key] = []
-            time[key] = []
-            #print dict[key]['time']
-            #print data
-        data[key] += dict[key]['spectrum']
-        total_counts[key].append(sum(dict[key]['spectrum']))
-        time[key].append(dict[key]['time'])
-        if i ==0:
-            spectraWidget.clear()
-            #spectra.setData(data[key],pen = color_mask[i])
     
-        spectraWidget.addItem(pg.PlotCurveItem(data[key], pen=color_mask[i]))
-        countWidget.addItem(pg.PlotCurveItem(time[key],total_counts[key],pen=color_mask[i]))
-#        counts.setData(time[key],total_counts[key],pen='r')
-        app.processEvents()     
+    def get_data(self):
+        flag = True
+        print 'hereeee'
+        while flag:
+            try:
+                messagedata = self.socket.recv(flags=zmq.NOBLOCK)
+                topic = messagedata[:5]
+                msg = messagedata[5:]
+                dict = json.loads(msg)
+                flag = False
+            except zmq.Again as e:
+                pass
+        return dict
 
-def get_data():
-    flag = True
-    while flag:
-        try:
-            messagedata = socket.recv(flags=zmq.NOBLOCK)
-            topic = messagedata[:5]
-            msg = messagedata[5:]
-            dict = json.loads(msg)
-            flag = False
-        except zmq.Again as e:
-            pass
-    return dict
-
+    def update(self):
+        #global spectra, data, total_counts, time
+        dict = get_data()
+        print 'here'
+        color_mask = ['w','b','g','y','r','p']
+        for i,key in enumerate(dict.keys()):
+            if key not in self.data.keys():
+                self.data[key] = np.ones(1024)
+                self.total_counts[key] = []
+                self.time[key] = []
+                #print dict[key]['time']
+                #print data
+                self.data[key] += dict[key]['spectrum']
+                self.total_counts[key].append(sum(dict[key]['spectrum']))
+                self.time[key].append(dict[key]['time'])
+                if i ==0:
+                    spectraWidget.clear()
+                    #spectra.setData(data[key],pen = color_mask[i])
+    
+                    spectraWidget.addItem(pg.PlotCurveItem(data[key], pen=color_mask[i]))
+                    countWidget.addItem(pg.PlotCurveItem(time[key],total_counts[key],pen=color_mask[i]))
+                    #        counts.setData(time[key],total_counts[key],pen='r')
+                    app.processEvents()     
 
 
 if __name__ == '__main__':
+#def gui():
+    
     app = QtGui.QApplication(sys.argv)
     mainWindow = QtGui.QMainWindow()
 
@@ -125,21 +141,14 @@ if __name__ == '__main__':
     counts = countWidget.line
     
 
-    data = {}
-    time = {}
-    total_counts = {}
-    port = '5556'
-    context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:%s" % port)
-    topicfilter = "1001"
-    socket.setsockopt(zmq.SUBSCRIBE, topicfilter)
+    data_stream = dataprocessing()
 
     timer = QtCore.QTimer()
-    timer.timeout.connect(update)
+    timer.timeout.connect(data_stream.update)
     timer.start(10)
     
     #if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
     #$   QtGui.QApplication.instance().exec_()
     mainWindow.show()
     app.exec_()
+    

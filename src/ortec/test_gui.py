@@ -4,6 +4,8 @@ from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
 import json
+from threading import Thread
+from gui_daq import daq
 
 
 class Acquisition(QtCore.QThread):
@@ -69,38 +71,41 @@ class SpectraPlotWidget(pg.PlotWidget):
   
 
     
-if __name__=='__main__':
+#if __name__=='__main__':
+def gui():
+    #thread = Thread(target = daq, kwargs =dict(spoof_digibase = True,time = 10))
+    #thread.start()
+    #thread.join()
+    app = QtGui.QApplication(sys.argv)
+    mainWindow = QtGui.QMainWindow()
+    # Set pyqtgraph to use white background/black foreground
+    # It defaults to black background/white foreground otherwise
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+     
+    plotWidget = SpectraPlotWidget()
+    # Add the widget to the window and set the window title
+    mainWindow.setCentralWidget(plotWidget)
+    mainWindow.setWindowTitle('Simple Plot')
     
-
-     app = QtGui.QApplication(sys.argv)
-     mainWindow = QtGui.QMainWindow()
-     # Set pyqtgraph to use white background/black foreground
-     # It defaults to black background/white foreground otherwise
-     pg.setConfigOption('background', 'w')
-     pg.setConfigOption('foreground', 'k')
-     
-     plotWidget = SpectraPlotWidget()
-     # Add the widget to the window and set the window title
-     mainWindow.setCentralWidget(plotWidget)
-     mainWindow.setWindowTitle('Simple Plot')
-
-     Flag = True
+    Flag = True
 
      
-     acqThread = Acquisition()
-     dict = acqThread.run(Flag)
-     plotWidget.update(dict)
+    acqThread = Acquisition()
+    dict = acqThread.run(Flag)
+    plotWidget.update(dict)
      
      
      
 
-     #timer = QtCore.QTimer()
-     #timer.timeout.connect(plotWidget.update(dict))
-     #loopTime = 20
-     #timer.start(loopTime)
-     
-     mainWindow.show()
-     app.exec_()
+    #timer = QtCore.QTimer()
+    #timer.timeout.connect(plotWidget.update(dict))
+    #loopTime = 20
+    #timer.start(loopTime)
+    
+    mainWindow.show()
+    app.exec_()
+    #thread.join()
      
      
     

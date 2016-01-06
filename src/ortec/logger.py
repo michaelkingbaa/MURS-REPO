@@ -42,15 +42,15 @@ class DataLogger(object):
             self._bufferInitialized=True
 
             for sn in sample.keys():
-                print 'Creating Group for sn: {0}'.format(sn)
+                #print 'Creating Group for sn: {0}'.format(sn)
                 self._buffer[sn]={}
                 for key in sample[sn].keys():
-                    print 'Creating Dataset for key: {0}'.format(key)
+                   # print 'Creating Dataset for key: {0}'.format(key)
                     if key == 'spectrum':
                         nChannels=len(sample[sn][key])
                         self._buffer[sn][key]=np.zeros((self._bufferLength,nChannels),dtype=np.int)
                     else:
-                        print 'dataType: {0}'.format(type(sample[sn][key]))
+                        #print 'dataType: {0}'.format(type(sample[sn][key]))
                         self._buffer[sn][key]=np.zeros(self._bufferLength,dtype=type(sample[sn][key]))
                         
                             
