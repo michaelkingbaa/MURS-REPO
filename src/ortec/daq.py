@@ -47,33 +47,7 @@ class WriteToFileProcess(mp.Process):
         print 'Shutdown initiated'
         self.exit.set()
 
-class Initialization():
-    def __init__(self):
-        #Setting Default Values
-        self.minAcqTime=1#seconds
-        self.maxAcqTime=30*3600#seconds 
 
-        self.defaultSamplePeriod=1#seconds
-        self.minSamplePeriod=0.1#seconds
-    
-        self.defaultLogPeriod=300#seconds
-        self.minLogPeriod=1#seconds
-
-        self.timeStart=dt.datetime.utcfromtimestamp(time.time())
-        self.timeStart=self.timeStart.strftime("%Y-%m-%dT%H-%M-%SZ")
-        self.defaultFileName='DataLog_{0}.h5'.format(self.timeStart)
-
-        if os.path.exists(os.path.abspath('./data/')):
-            self.defaultDirectory='./data/'
-        else:
-            self.defaultDirectory='./'
-
-        self.defaultConfigFile='./ortec_config_default.ini'
-
-    #def keywords(self, kwargs):
-        
-
-    
         
 ######################### Main Execution Portion #########################
 ##########################################################################        
@@ -198,7 +172,7 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
         #import pdb; pdb.set_trace()
         #Applying HV Settings
         if det in hv_setting:
-            print 'Setting det: {0} HV to: {0} V'.format(det,hv_setting[det])
+            print 'Setting HV for {0} to: {1} V'.format(det,hv_setting[det])
             dbc.setHV(det,hv_setting[str(det)])
         else:
             warnings.warn('{0} does not contain HV setting entry for det: {1}...setting to default 1000V'.format(config_file,det))

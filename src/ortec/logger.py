@@ -9,7 +9,7 @@ import time
 
 class DataLogger(object):
     def __init__(self,fName=None,bufferLength=10):
-        print 'Constructing DataLogger'
+        #print 'Constructing DataLogger'
         ############  Setting File Name Appropriately     ############
         if fName is None:
             t=dt.datetime.utcfromtimestamp(time.time())
@@ -38,14 +38,14 @@ class DataLogger(object):
 
     def initializeBuffer(self,sample):
         if not self._bufferInitialized:
-            print 'initializing buffer'
+            #print 'initializing buffer'
             self._bufferInitialized=True
 
             for sn in sample.keys():
                 #print 'Creating Group for sn: {0}'.format(sn)
                 self._buffer[sn]={}
                 for key in sample[sn].keys():
-                   # print 'Creating Dataset for key: {0}'.format(key)
+                    #print 'Creating Dataset for key: {0}'.format(key)
                     if key == 'spectrum':
                         nChannels=len(sample[sn][key])
                         self._buffer[sn][key]=np.zeros((self._bufferLength,nChannels),dtype=np.int)
