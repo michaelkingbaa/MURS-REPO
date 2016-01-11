@@ -314,7 +314,7 @@ class ControlRegister(object):
 
     def set_fake_ADC(self,value):
 	index=self.regName.index('control2')
-	if value in [0,1]
+	if value in [0,1]:
 	    self._byteList[index].set_bit(1,value)
 
     def get_mem_size(self): # uncalled
@@ -425,7 +425,6 @@ class ControlRegister(object):
 
     def set_LLD(self,lldSet):
 	#conversion
-	uFG=self.
 	index=self.regName.index('lld_set')
 	self._byteList[index].set_value()
 
@@ -1177,32 +1176,32 @@ class DigiBaseController(object):
         return sp
 
     def clear_counters(self,det):
-	if det in self._dets
+	if det in self._dets:
 	    self._dets[det].set_clear_counters(self,1)
 	    self._dets[det].set_clear_counters(self,0)
-	    if self._dets[det].get_clear_counters(self)!=0
+	    if self._dets[det].get_clear_counters(self)!=0:
 		raise ValueError('Issue in clearing counters')
 
     def set_mem_size(self,det,memSize):
-	if det in self._dets
+	if det in self._dets:
 	    self._dets[det].set_mem_size(memSize)
         else:
             raise RuntimeError('No Det to set MEMSIZE')
 
     def get_mem_start(self,det):
-	if det in self._dets
+	if det in self._dets:
 	    self._dets[det].get_mem_start()
         else:
             raiseRuntimeError('No Det to get MEMSTART')
 
     def set_mem_start(self,det,memStart):
-	if det in self._dets
+	if det in self._dets:
 	    self._dets[det].set_mem_size(memStart)
         else:
             raiseRuntimeError('No Det to set MEMSTART')
 
     def get_fifo_count(self,det):
-	if det in self._dets
+	if det in self._dets:
 	    self._dets[det].get_fifo_count()
 
     #### Acquisition ####
@@ -1229,7 +1228,7 @@ class DigiBaseController(object):
 	    self.reset(det)
 
     def get_PHA_mode(self,det):
-	if det in self._dets
+	if det in self._dets:
 	    self._dets[det].get_PHA_mode()
         else:
             raiseRuntimeError('No Det to get PHA Mode')
