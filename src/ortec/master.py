@@ -4,6 +4,8 @@ from Queue import Queue
 import time
 import zmq
 import json
+from kafka import SimpleConsumer, KafkaClient, KafkaConsumer
+
 
 if __name__ == "__main__":
     
@@ -14,8 +16,8 @@ if __name__ == "__main__":
     socket.bind("tcp://*:%s" % port)
     topic = 1001
 
-    q = Queue()
-    _sentinel = object() #object that signals shutdown
+    #q = Queue()
+    #_sentinel = object() #object that signals shutdown
     q_message = Queue()
 
     #DO THIS LATER
@@ -24,25 +26,46 @@ if __name__ == "__main__":
 
     
 #    thread = Thread(target = daq, kwargs = dict(spoof_digibase = True, time=10))
-    thread = Thread(target = daq, args=(q,_sentinel,q_message), kwargs = dict(time=10))
+    thread = Thread(target = daq, args=(q_message,), kwargs = dict(time=60))
     thread.start()
 
     counter=0
+
+    
+    consumer = KafkaConsumer('data_messages',bootstrap_servers=['localhost:9092'])
+    
     
     while True:
         
-        sample = q.get()
+        #sample = q.get()
         counter+=1
-        if sample is _sentinel:
-            print 'queue is really empty', q.empty()
+        #if sample is _sentinel:
+        #    print 'queue is really empty', q.empty()
+            #break
+        #else:
+        #    messagedata = json.dumps(sample)
+        #    socket.send("%d %s" % (topic, messagedata))
+        #    print sample['15226068']['time'], counter, 'queue'
+        #    if counter == 5:
+        #        q_message.put('Hi There')
+        
+        
+        
+        msg = consumer.next()
+        
+        #msg = consumer.get_messages(count=1,block=True)
+        #print msg
+
+        if msg.value == 'STOP':
+            print 'kafka is really empty'
             break
-        else:
-            messagedata = json.dumps(sample)
-            socket.send("%d %s" % (topic, messagedata))
-            if counter == 5:
-                q_message.put('Hi There')
+        data = json.loads(msg.value)
+        print data['15226068']['time'], counter
         
     
-    thread.join()
+        
+                    
     
+    thread.join()
+
 

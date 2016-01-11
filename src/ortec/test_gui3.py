@@ -1,4 +1,4 @@
-from pyqtgraph.Qt import QtGui, QtCore
+from PyQt4 import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.ptime import time
@@ -6,6 +6,7 @@ import zmq
 import json
 import sys
 from pyqtgraph.dockarea import *
+from kafka import KafkaConsumer
 
 
 
@@ -60,11 +61,24 @@ class CountsPlotWidget(pg.PlotWidget):
         self.line = self.plot()
 
 
+class ButtonWidget(QtGui.QWidget):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.startBtn = QtGui.QPushButton('Start Data Acquisition',self)
+        self.startBtn.clicked.connect(self.start)
+        layout = QtGui.QVBoxLayout(self)
+        layout.addWidget(self.startBtn)
+        
+    def start(self):
+        print "hello"
+        
 
 
 def update():
     global spectra, data, total_counts, time
     dict = get_data()
+    if dict == 'STOP':
+        return   ###FIGURE OUT HOW TO END NICELY
     color_mask = ['w','b','g','y','r','p']
     for i,key in enumerate(dict.keys()):
         if key not in data.keys():
@@ -87,16 +101,15 @@ def update():
         app.processEvents()     
 
 def get_data():
-    flag = True
-    while flag:
-        try:
-            messagedata = socket.recv(flags=zmq.NOBLOCK)
-            topic = messagedata[:5]
-            msg = messagedata[5:]
-            dict = json.loads(msg)
-            flag = False
-        except zmq.Again as e:
-            pass
+    
+    msg = consumer.next()
+    #    msg = consumer.next(consumer_timeout_ms=100)
+    if msg.value != 'STOP':
+        dict = json.loads(msg.value)
+        print dict['15226068']['time']
+    else:
+        return 'STOP'
+    
     return dict
 
 
@@ -109,10 +122,13 @@ mainWindow.setCentralWidget(area)
 mainWindow.resize(1000,500)
 mainWindow.setWindowTitle('MURS Real Time Data')
 
-d1 = Dock('Specta',size=(500,300))
-d2 = Dock('Total Counts',size=(500,300))
+d1 = Dock('Specta',size=(500,300)) #spectra plot
+d2 = Dock('Total Counts',size=(500,300)) #total counts plot
+d3 = Dock('Controls',size=(1,1))
 area.addDock(d1, 'left')
 area.addDock(d2, 'right')
+area.addDock(d3, 'top')
+
 
     
 # Set pyqtgraph to use white background/black foreground
@@ -126,7 +142,8 @@ countWidget = CountsPlotWidget()
 d1.addWidget(spectraWidget)
 d2.addWidget(countWidget)
     
-  
+buttonWidget = ButtonWidget()
+d3.addWidget(buttonWidget)
 
 spectra = spectraWidget.line
 counts = countWidget.line
@@ -135,12 +152,21 @@ counts = countWidget.line
 data = {}
 time = {}
 total_counts = {}
+
+#KAFKA consumer
+consumer = KafkaConsumer('data_messages',bootstrap_servers=['localhost:9092'])
+print consumer.get_partition_offsets('data_messages',0,-1,1)
+
+quit()
+#For sending button messages
 port = '5556'
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 socket.connect("tcp://localhost:%s" % port)
 topicfilter = "1001"
 socket.setsockopt(zmq.SUBSCRIBE, topicfilter)
+
+
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
