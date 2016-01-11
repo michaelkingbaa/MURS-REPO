@@ -19,6 +19,7 @@ import datetime as dt
 import argparse
 import json
 import zmq
+from kafka import SimpleProducer, KafkaClient
 
 class WriteToFileProcess(mp.Process):
     def __init__(self,q,logger):
@@ -51,10 +52,9 @@ class WriteToFileProcess(mp.Process):
         
 ######################### Main Execution Portion #########################
 ##########################################################################        
-def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
+def daq(MESSAGE_Q, **kwargs):
 
-    #DATA_Q is the global queue that sends data to the master thread
-    #_sentinal gets set to end the DATA_Q queue
+    print 'here'
     #MESSAGE_Q is the global queue that sends "messages" from the master thread...
     
 #kwargs can be:
@@ -90,7 +90,11 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
 
     defaultConfigFile='./ortec_config_default.ini'
 
-
+    #set up kafka producer
+    kafka = KafkaClient('localhost:9092')
+    producer = SimpleProducer(kafka)
+    topic = 'data_messages'
+    
     #get kwargs out and set defaults for anything that hasn't been set
     default = False
 
@@ -106,24 +110,24 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
     
     if check:
         print 'Performing Check to see if we can connect to Digibases'
-        dbc=DigiBaseController(DATA_Q,_sentinel)
+        dbc=DigiBaseController(producer,topic)
         exit()
     
     if not minAcqTime <= acq_time <=maxAcqTime:
-        DATA_Q.put(_sentinel)
+        producer.send_messages(topic,'STOP')
         raise RuntimeError('time: {0}  must be between {1} - {2} seconds. (use -h for help)'.format(acq_time,minAcqTime,maxAcqTime))
     if sample_duration>acq_time:
-        DATA_Q.put(_sentinel)
+        producer.send_messages(topic,'STOP')
         raise RuntimeError('Sample Duration must be less than Acquisition Time')
 
     if sample_duration<minSamplePeriod:
-        DATA_Q.put(_sentinel)
+        producer.send_messages(topic,'STOP')
         raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
     if log_period<=minLogPeriod:
-        DATA_Q.put(_sentinel)   
+        producer.send_messages(topic,'STOP')
         raise RuntimeError('Log Period must be greater than {0} seconds'.format(minLogPeriod))
     if not os.path.exists(os.path.abspath(directory)):
-        DATA_Q.put(_sentinel)
+        producer.send_messages(topic,'STOP')
         raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(directory))
     fileName=os.path.join(os.path.abspath(directory),data_file)
     
@@ -131,7 +135,7 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
         warnings.warn('Log file already exists!! file: {0} may be overwritten!!'.format(fileName))
         
     if not os.path.exists(os.path.abspath(config_file)):
-        DATA_Q.put(_sentinel)
+        producer.send_messages(topic,'STOP')
         raise RuntimeError('Detector Configuration File: {0} Not Found!!'.format(config_file))
 
         
@@ -150,7 +154,7 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
         warnings.warn("Spoofing Digibase Input for debug purposes")
         dbc=DigiBaseSpoofer()
     else:
-        dbc=DigiBaseController(DATA_Q, _sentinel)
+        dbc=DigiBaseController(producer,topic)
         
     #check for digibases
     
@@ -218,6 +222,7 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
     pFile.start()
 
     
+    
 
     dbc.start_acquisition()
     
@@ -239,13 +244,13 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
         sample=dbc.getSample(duration=sample_duration)
         #send data to write file thread
         qFile.put(sample)
+
+        #send data to Kafka
+        messagedata = json.dumps(sample)
+        producer.send_messages(topic, messagedata)
         
-        #send data to master thread
-        DATA_Q.put(sample)
         
-#        messagedata = json.dumps(sample)
-        #print "%d %s" % (topic, messagedata)
- #       socket.send("%d %s" % (topic, messagedata))
+                
 
     print '##########################################################################'
     print '###################### Wrapping up Acquisition ###########################'
@@ -253,7 +258,7 @@ def daq(DATA_Q, _sentinel, MESSAGE_Q, **kwargs):
     tHold=2#seconds
     print 'Waiting {0} seconds for processes to finish'.format(tHold)
     pFile.shutdown()
-    DATA_Q.put(_sentinel)
+    producer.send_messages(topic,'STOP')
     time.sleep(tHold)
     print 'WriteToFileProcess state: {0}'.format(pFile.is_alive())
     print '##########################################################################'

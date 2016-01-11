@@ -605,7 +605,7 @@ class DigiBase(object):
 class DigiBaseController(object):
     vID=2605
     pID=31
-    def __init__(self, DATA_Q, _sentinel):
+    def __init__(self, producer,topic):
         print 'Constructing DigiBaseController()'
         self._dets={}
         self._acquireFlag=False
@@ -627,7 +627,7 @@ class DigiBaseController(object):
                 pass
 
         if len(self._dev.keys()) <=0:
-            DATA_Q.put(_sentinel)
+            producer.send_messages(topic,'STOP')
             raise RuntimeError("No Digibase Connected")
         else:
             for sn,dev in self._dev.items():
