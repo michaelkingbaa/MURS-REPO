@@ -215,6 +215,11 @@ class ControlRegister(object):
         else:
             raise ValueError('set_enable_hv value must be 0,1')
 
+    def check_HV_ADC(self):
+	#high when bias supply ADC is busy converting
+	index=self.regName.index('status')
+	return self._byteList[index].get_bytes()[3]
+
     #### Fine Gain ####
     def set_fine_gain(self,fg):
         if fg >=0.4 and fg <=1.2:
@@ -246,27 +251,223 @@ class ControlRegister(object):
                 index=self._regName.index(names[i])
                 self._byteList[index].set_value(v)
 
-    #### Misc ####
+    #### Offset Stabalization ####
+    def get_enable_offset_stab(self):
+	index=self.regName.index('control')
+	return self._byteList[index].get_bytes()[5]
 
-##### No longer called ######
-#    def get_mem_size(self):       
-#        index=self.regName.index('mem_size')
-#        return self._byteList[index].get_bytes()
-        
-    def set_acq_start(self,value):
-        if value is 0 or value is 1:
-            index=self._regName.index('control')
-            self._byteList[index].set_bit(1,value)
+    def set_enable_offset_stab(self,value):
+        index=self._regName.index('control')
+        if value in [0,1]:
+            self._byteList[index].set_bit(5,value)
         else:
-            raise ValueError('acq_start bit must be 1 or 0')
-            
-    ## MARK INCORPORATING THE OVERFLOW ##
+            raise ValueError('set_enable_offset_stab value must be 0,1')
+
+    def get_offset(self):
+	index=self._regName.index('offset_act')
+	return self._byteList[index].get_bytes()
+
+    def set_offset(self,offset):
+	index=self._regName.index('offset_set')
+	self._byteList[index].set_bytes(offset)
+
+    def get_offset_stab_pars(self):
+        names=['offset_stab_min','offset_stab_mid','offset_stab_max']
+	pars=[]
+        for index in names:
+            pars.append(self._byteList[index].get_value())
+	return pars
+
+    def set_offset_stab_pars(self,minVal, midVal, maxVal):
+        names=['offset_stab_min','offset_stab_mid','offset_stab_max']
+        pars=[minVal,midVal,maxVal]
+        valid=[i > 0 and i < 1024 for i in pars]
+        if all(valid):
+            for i,v in enumerate(pars):
+                index=self._regName.index(names[i])
+                self._byteList[index].set_value(v)
+
+    #### Data ####
+    def get_clear_counters(self):
+	index=self.regName.index('control2')
+	self._byteList[index].get_bytes()[0]
+
+    def set_clear_counters(self,value):
+	index=self.regName.index('control2')
+	if value in [0,1]:
+	    self._byteList[index].set_bit(0,value)
+
+    def get_enable_overflow(self):
+	index=self.regName.index('control2')
+	return self._byteList[index].get_bytes()[6]
+
     def set_enable_overflow(self,value):
         index=self._regName.index('control2')
         if value in [0,1]:
             self._byteList[index].set_bit(6,value)
         else:
             raise ValueError('set_enable_overflow value must be 0,1')
+
+    def get_fake_ADC(self):
+	index=self.regName.index('control2')
+	self._byteList[index].get_bytes()[1]
+
+    def set_fake_ADC(self,value):
+	index=self.regName.index('control2')
+	if value in [0,1]
+	    self._byteList[index].set_bit(1,value)
+
+    def get_mem_size(self): # uncalled
+        index=self.regName.index('mem_size')
+        return self._byteList[index].get_bytes()
+        
+    def set_mem_size(self,value):
+	index=self.regName.index('mem_size')
+	self._byteList[index].set_value(value)
+
+    def get_mem_start(self):
+	index=self.regName.index('mem_start')
+	return self._byteList[index].get_bytes()
+
+    def set_mem_start(self,value):
+	index=self.regName.index('mem_start')
+	self._byteList[index].set_value(value)
+
+    def get_fifo_count(self):
+	index=self.regName.index('ff_count')
+	self._byteList[index].get_bytes()
+
+    #### Acquisition ####
+    def set_acq_start(self,value):
+        if value is 0 or value is 1:
+            index=self._regName.index('control')
+            self._byteList[index].set_bit(1,value)
+        else:
+            raise ValueError('acq_start bit must be 1 or 0')
+
+    def check_collect(self):
+	# returns collection status active/inactive
+	index=self.regName.index('status')
+	return self._byteList[index].get_bytes()[0]
+
+    def get_width(self):
+	# converted to units of us (microseconds)
+	index=self.regName.index('width')
+	return self._byteList[index].get_value()/16
+
+    def set_width(self,shapeTime):
+	# shaping time in us (microseconds)
+	index=self.regName.index('width')
+	self._byteList[index].set_value(int(shapeTime*16))
+
+    def get_PHA_mode(self): 
+	# 0 is list mode, 1 is PHA
+	index=self.regName.index('control')
+	return self._byteList[index].get_bytes()[0]
+
+    def set_PHA_mode(self,value):
+	index=self.regName.index('control')
+	if value in [0,1]:
+	    self._byteList[index].set_bit(0,value)
+	else:
+	    raise ValueError('set_PHA_mode value must be 0,1')
+
+    def reset(self,value):
+	index=self.regName.index('control')
+	self._byteList[index].set_bit(7,value)
+
+    #### Time ####
+    def get_enable_livetime_preset(self):
+	index=self.regName.index('control')
+	return self._byteList[index].get_bytes()[2]
+
+    def set_enable_livetime_preset(self,value):
+	index=self.regName.index('control')
+	if value in [0,1]:
+	    self._byteList[index].set_bit(2,value)
+	else:
+	    raise ValueError('set_enable_livetime_preset value must be 0,1')
+
+    def get_livetime_preset(self):
+	#converted to seconds
+	index=self.regName.index('lt_preset')
+	return 0.02*self._byteList[index].get_value()
+
+    def set_livetime_preset(self,ltPreset):
+	#ltPreset in seconds
+	index=self.regName.index('lt_preset')
+	self._byteList[index].set_value(ltPreset*50)
+
+    def get_livetime(self):
+	index=self.regName.index('livetime')
+	return 0.02*self._byteList[index].get_value()
+
+    def get_enable_realtime_preset(self):
+	index=self.regName.index('control')
+	return self._byteList[index].get_bytes()[3]
+
+    def set_enable_realtime_preset(self,value):
+	index=self.regName.index('control')
+	if value in [0,1]:
+	    self._byteList[index].set_bit(3,value)
+	else:
+	    raise ValueError('set_enable_realtime_preset value must be 0,1')
+
+    def get_realtime(self):
+	index=self.regName.index('realtime')
+	return 0.02*self._byteList[index].get_value()
+
+    #### Discriminators ####
+    def get_LLD(self):
+	#did not incorporate conversion mess 
+	index=self.regName.index('lld_set')
+	return self._byteList[index].get_value()
+
+    def set_LLD(self,lldSet):
+	#conversion
+	uFG=self.
+	index=self.regName.index('lld_set')
+	self._byteList[index].set_value()
+
+    def get_ULD(self):
+	index=self.regName.index('uld_set')
+	return self._byteList[index].get_value()
+
+    def set_ULD(self,uldSetting):
+	index=self.regName.index('uld_set')
+	self._byteList[index].set_value(uldSetting)
+
+    #### Insight Module ####
+    def check_insight_module(self):
+	#high when module has a waveform ready to transmit
+	index=self.regName.index('status')
+	return self._byteList[index].get_bytes()[2]
+
+    def get_insight_control(self):
+	index=self.regName.index('insight_ctl')
+	return self._byteList[index].get_bytes()
+
+    def set_insight_control(self,bytestr):
+	index=self.regName.index('insight_ctl')
+	self._byteList[index].set_bytes(bytestr)
+
+    #### Enable Input ####
+    def check_enable_input(self):
+	#state of enable input
+	index=self.regName.index('status')
+	return self._byteList[index].get_bytes()[1]
+
+    def get_enable_input_control(self):
+	index=self.regName.index('aux_ctl')
+	return self._byteList[index].get_bytes()
+
+    def set_enable_input_control(self,bytestr):
+	index=self.regName.index('aux_ctl')
+	self._byteList[index].set_bytes(bytestr)
+
+    def get_enable_input_count(self):
+	index=self.regName.index('auxE_cnt')
+	return self._byteList[index].get_bytes()
 
 class FPGA(object):
     eP_SEND=8
@@ -332,21 +533,7 @@ class FPGA(object):
         #print 'Control Register Written Successfully!'
         self._controlRegister.set_from_bytes(CR)
 
-    def clear_data(self):
-        self._cnct.bulkWrite(self.eP_SEND,self.CMD_CLEARDATA,self.TIMEOUT)
-        self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
-
-    def show_data(self):
-#        nBytes=self._controlRegister.get_mem_size()
-        nBytes=4097
-        self._cnct.bulkWrite(self.eP_SEND,self.CMD_SHOWDATA,self.TIMEOUT)
-        r=self._cnct.bulkRead(self.eP_RECV,nBytes,self.TIMEOUT)
-        return r
-
-    def start_acq(self):
-        self._controlRegister.set_acq_start(1)
-        self.write_control_register()
-    
+    #### High Voltage ####
     def enable_hv(self):
         self._controlRegister.set_enable_hv(1)
         self.write_control_register()
@@ -363,15 +550,21 @@ class FPGA(object):
     def get_hv(self):
         return self._controlRegister.get_hv_actual()
 
+    def check_HV_ADC(self):
+	return self._controlRegister.get_HV_ADC()
+
+    #### Fine Gain ####
     def set_fine_gain(self,value):
         #print 'in FPGA...set fine gain to: ',value
         self._controlRegister.set_fine_gain(value)
         self.write_control_register()
+	self.write_control_register() #need to run this twice for discriminators
         return self.get_fine_gain()
 
     def get_fine_gain(self):
         return self._controlRegister.get_fine_gain()
-    
+
+    #### Gain Stabalization ####
     def enable_gain_stab(self):
         self._controlRegister.set_enable_gain_stab(1)
         self.write_control_register()
@@ -383,6 +576,172 @@ class FPGA(object):
     def set_gain_stab_pars(self,minVal, midVal, maxVal):
         self._controlRegister.set_gain_stab_pars(minVal,midVal,maxVal)
         self.write_control_register()
+
+    #### Offset Stabalization ####
+    def get_enable_offset_stab(self):
+	return self._controlRegister.get_enable_offset_stab()
+
+    def set_enable_offset_stab(self,value):
+	self._controlRegister.set_enable_offset_stab(value)
+	self.write_control_register()
+
+    def get_offset(self):
+	return self._controlRegister.get_offset()
+
+    def set_offset(self,offset):
+	self._controlRegister.set_offset(offset)
+	self.write_control_register()
+	self._controlRegister.set_offset(0x8000 | offset)
+	self.write_control_register()
+
+    def get_offset_stab_pars(self):
+	return self._controlRegister.get_offset_stab_pars()
+
+    def set_offset_stab_pars(self,minVal, midVal, maxVal):
+        self._controlRegister.set_offset_stab_pars(minVal,midVal,maxVal)
+        self.write_control_register()
+
+    #### Data ####
+    def clear_data(self):
+        self._cnct.bulkWrite(self.eP_SEND,self.CMD_CLEARDATA,self.TIMEOUT)
+        self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
+
+    def show_data(self):
+#        nBytes=self._controlRegister.get_mem_size()
+        nBytes=4097
+        self._cnct.bulkWrite(self.eP_SEND,self.CMD_SHOWDATA,self.TIMEOUT)
+        r=self._cnct.bulkRead(self.eP_RECV,nBytes,self.TIMEOUT)
+        return r
+
+    def get_enable_overflow(self):
+	return self._controlRegister.get_enable_overflow()
+
+    def get_clear_counters(self):
+	return self._controlRegister.get_clear_counters()
+
+    def set_clear_counters(self,value):
+	self._controlRegister.set_clear_counters(self,value)
+	self.write_control_register()
+
+    def get_fake_ADC(self,value):
+	return self._controlRegister.get_fake_ADC()	
+
+    def set_fake_ADC(self,value):
+	self._controlRegister.set_fake_ADC(value)
+	self.write_control_register()
+
+    def set_mem_size(self,memSize):
+	self._controlRegister.set_mem_size(memSize)
+	self.write_control_register()
+
+    def get_mem_start(self):
+	return self._controlRegister.get_mem_start()
+
+    def set_mem_start(self,memStart):
+	self._controlRegister.set_mem_start(memStart)
+	self.write_control_register()
+
+    def get_fifo_count(self):
+	return self._controlRegister.get_fifo_count()
+
+    #### Acquisition ####
+    def start_acq(self):
+        self._controlRegister.set_acq_start(1)
+        self.write_control_register()
+
+    def check_collect(self):
+	return self._controlRegister.check_collect()
+
+    def get_width(self):
+	return self._controlRegister.get_width()
+
+    def set_width(self,shapeTime):
+	self._controlRegister.set_width(shapeTime)
+	self.write_control_register()
+
+    def get_PHA_mode(self):
+	return self._controlRegister.get_PHA_mode()
+
+    def set_PHA_mode(self,PHAmode):
+	self._controlRegister.set_PHA_mode(PHAmode)
+	self.write_control_register()
+    
+    def reset(self):
+	self._controlRegister.reset(1)
+	self.write_control_register()
+	os.system('sleep 0.05')
+	self._controlRegister.reset(0)
+	self.write_control_register
+
+    #### Time ####
+    def get_enable_livetime_preset(self):
+	return self._controlRegister.get_enable_livetime_preset()
+
+    def set_enable_livetime_preset(self,value):
+	self._controlRegister.set_enable_livetime_preset(value)
+	self.write_control_register()
+
+    def get_livetime_preset(self):
+	return self._controlRegister.get_livetime_preset(self)
+
+    def get_livetime(self):
+	return self._controlRegister.get_livetime()
+
+    def set_livetime_preset(self,ltPreset):
+	self._controlRegister.get_livetime_preset(self,ltPreset)
+	self.write_control_register()
+
+    def get_enable_realtime_preset(self):
+	return self._controlRegister.get_enable_realtime_preset()
+
+    def set_enable_realtime_preset(self,value):
+	self._controlRegister.set_enable_realtime_preset(value)
+	self.write_control_register()
+
+    def get_realtime(self):
+	return self._controlRegister.get_realtime()
+
+    #### Discriminator ####
+    def get_LLD(self):
+	return self._controlRegister.get_LLD()
+
+    def set_LLD(self,lldSet):
+	self._controlRegister.set_LLD(lldSet)
+	self.write_control_register()
+
+    def get_ULD(self):
+	return self._controlRegister.get_ULD()
+
+    def set_ULD(self,uldBin):
+	self._controlRegister.set_ULD(0x8000 | uldBin)
+	self.write_control_register()
+	self._controlRegister.set_ULD(uldBin)
+	self.write_control_register()
+
+    #### Insight Module ####
+    def check_insight_module(self):
+	return self._controlRegister.check_insight_module()
+
+    def get_insight_control(self):
+	return self._controlRegister.get_insight_control()
+
+    def set_insight_control(self,bytestr):
+	self._controlRegister.set_insight_control()
+	self.write_control_register()
+
+    #### Enable Input ####
+    def check_enable_input(self):
+	return self._controlRegister.check_enable_input()
+
+    def get_enable_input_control(self):
+	return self._controlRegister.get_enable_input_control()
+
+    def set_enable_input_control(self):
+	self._controlRegister.set_enable_input_control()
+	self.write_control_register()
+
+    def get_enable_input_count(self):
+	return self._controlRegister.get_enable_input_count()
 
 class MicroController(object):
     #Microcontroller EndPoints  from ORTEC Docs
@@ -488,10 +847,6 @@ class MicroController(object):
             response+=recv[2:]
         return response
     
-                    
-            
-
-    
 class DigiBase(object):
     vID=2605
     pID=31
@@ -512,6 +867,10 @@ class DigiBase(object):
         self._fpga=self._microCon.initializeFPGA()
         # print 'WARNING!!! Default HV is set to 0, use set_hv(volts=val) to set to appropriate value'
 
+    def get_settings(self):
+        return self._fpga.getRegisterSettings()
+
+    #### High Voltage ####
     def enable_hv(self):
         self._fpga.enable_hv()
 
@@ -531,66 +890,21 @@ class DigiBase(object):
         val=self._fpga.set_hv(volts)
         return val 
 
-     ##### no longer called; commented out #####        
-#    def set_hv_steps(self,volts):
-#        #Parameters for stepping HV
-#        vmin=0#volts
-#        vmax=1200#volts
-#        vstep=100.#Volts
-#        tstep=1e-4#seconds
-        
-#        vold=self._fpga.get_hv()
-
-#        volts=float(volts)
-#        #print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
-#        if not (volts >=0 and volts <=1200):
-#            raise ValueError('cannot set_hv to volts={0}...Range is {1}-{2} V'.format(volts,vmin,vmax))
-        
-#        nSteps=(volts-vold)/vstep
-#        sign=np.sign(nSteps)
-#        nSteps=int(max(abs(nSteps),1))
-
-        #Stepping Voltage by 10 V increments
-#        for i in xrange(nSteps):
-#            v=vold+i*vstep*sign
-#            # print 'Stepping Voltage to: {0} V'.format(v)
-#            self._fpga.set_hv(v)
-#            time.sleep(tstep)
-
-#        #Now we are sure we are within 10 V so set to actual value
-#        val=self._fpga.set_hv(volts)
-#        if nSteps>3:
-#            print 'Letting HV stabilize for 5 seconds'
-#            time.sleep(5)
-#        return val
-
     def get_hv(self):
         return self._fpga.get_hv_actual()
-    
+
+    def check_HV_ADC(self):
+	return self._fpga.get_HV_ADC()
+
+    #### Fine Gain ####
     def set_fine_gain(self,value):
         #print 'Setting Fine Gain to: ',value
         self._fpga.set_fine_gain(value)
 
     def get_fine_gain(self):
-        return self._fpga.get_fine_gain()    
+        return self._fpga.get_fine_gain() 
 
-    def get_settings(self):
-        return self._fpga.getRegisterSettings()
-    
-    def start_acquisition(self):
-        self._fpga.start_acq()
-        
-    def get_spectrum(self):
-        d=self._fpga.show_data()
-        reg=self._fpga.read_control_register()
-        
-        # print repr(reg[0:4]),repr(reg[42:44])
-        tmp=struct.unpack('%dI'%(len(d)/4),d)
-        return tmp
-
-    def clear_spectrum(self):
-        self._fpga.clear_data()
-
+    #### Gain Stabalization ####
     def enable_gain_stab(self):
         self._fpga.enable_gain_stab()
 
@@ -599,8 +913,146 @@ class DigiBase(object):
         
     def set_gain_stab_pars(self,minVal,midVal,maxVal):
         self._fpga.set_gain_stab_pars(minVal,midVal,maxVal)
-        
 
+    #### Offset Stabalization ####
+    def get_enable_offset_stab(self):
+	return self._fpga.get_enable_offset_stab()
+
+    def set_enable_offset_stab(self,value):
+	self._fpga.set_enable_offset_stab(value)
+
+    def get_offset(self):
+	return self._fpga.get_offset()
+
+    def set_offset(self,offset):
+	self._fpga.set_offset(offset)
+
+    def get_offset_stab_pars(self):
+	return self._fpga.get_offset_stab_pars()
+
+    def set_offset_stab_pars(self,minVal, midVal, maxVal):
+        self._fpga.set_offset_stab_pars(minVal,midVal,maxVal)
+
+    #### Aquisition ####
+    def start_acquisition(self):
+        self._fpga.start_acq()
+
+    def check_collect(self):
+	return self._fpga.check_collect()
+
+    def get_width(self):
+	return self._fpga.get_width()
+
+    def set_width(self,shapeTime):
+	self._fpga.set_width(shapeTime)
+
+    def get_PHA_mode(self):
+	self._fpga.get_PHA_mode()
+
+    def set_PHA_mode(self,PHAmode):
+	self._fpga.set_PHA_mode(PHAmode)
+
+    def reset(self):
+	self._fpga.reset()
+
+    #### Data ####        
+    def get_spectrum(self):
+        d=self._fpga.show_data()
+        reg=self._fpga.read_control_register()
+        # print repr(reg[0:4]),repr(reg[42:44])
+        tmp=struct.unpack('%dI'%(len(d)/4),d)
+        return tmp
+
+    def clear_spectrum(self):
+        self._fpga.clear_data()
+
+    def get_enable_overflow(self):
+	return self._fpga.get_enable_overflow()
+
+    def get_clear_counters(self):
+	return self._fpga.get_clear_counters()
+
+    def set_clear_counters(self,value):
+	self._fpga.set_clear_counters(self,value)
+
+    def get_fake_ADC(self,value):
+	return self._fpga.get_fake_ADC()	
+
+    def set_fake_ADC(self,value):
+	self._fpga.set_fake_ADC(value)
+
+    def set_mem_size(self,memSize):
+	self._fpga.set_mem_size(memSize)
+
+    def get_mem_start(self):
+	return self._fpga.get_mem_start()
+
+    def set_mem_start(self,memStart):
+	self._fpga.set_mem_size(memStart)
+
+    def get_fifo_count(self):
+	return self._fpga.get_fifo_count()
+
+    #### Time ####
+    def get_enable_livetime_preset(self):
+	return self._fpga.get_enable_livetime_preset()
+
+    def set_enable_livetime_preset(self,value):
+	self._fpga.set_enable_livetime_preset(value)
+
+    def get_livetime_preset(self):
+	return self._fpga.get_livetime_preset(self)
+
+    def set_livetime_preset(self,ltPreset):
+	self._fpga.get_livetime_preset(self,ltPreset)
+
+    def get_livetime(self):
+	return self._controlRegister.get_livetime()
+
+    def get_enable_realtime_preset(self):
+	return self._fpga.get_enable_realtime_preset()
+
+    def set_enable_realtime_preset(self,value):
+	self._fpga.set_enable_realtime_preset(value)
+
+    def get_realtime(self):
+	return self._fpga.get_realtime()
+
+    #### Discriminator ####
+    def get_LLD(self):
+	return self._fpga.get_LLD()
+
+    def set_LLD(self,lldSet):
+	self._fpga.set_LLD(lldSet)
+
+    def get_ULD(self):
+	return self._fpga.get_ULD()
+
+    def set_ULD(self,uldBin):
+	self._fpga.set_ULD(uldBin)
+
+    #### Insight Module ####
+    def check_insight_module(self):
+	return self._fpga.check_insight_module()
+
+    def get_insight_control(self):
+	return self._fpga.get_insight_control()
+
+    def set_insight_control(self,btyestr):
+	return self._fpga.set_insight_control(bytestr)
+
+    #### Enable Input ####
+    def check_enable_input(self):
+	return self._fpga.check_enable_input()
+
+    def get_enable_input_control(self):
+	return self._fpga.get_enable_input_control()
+
+    def set_enable_input_control(self,bytestr):
+	self._fpga.set_enable_input_control(bytestr)
+
+    def get_enable_input_count(self):
+	return self._fpga.get_enable_input_count()
 
 class DigiBaseController(object):
     vID=2605
@@ -634,13 +1086,75 @@ class DigiBaseController(object):
                 #print 'Getting Serial Number and Constructing Digibase for: ',sn
                 self._dets[sn]=DigiBase(sn,dev)
 
-    def start_acquisition(self):
-        t=time.time()
-        self._acquireFlag=True
-        for det in self._dets.values():
-            det.start_acquisition()
-        return t
+    #### High Voltage ####
+    def setHV(self,det,volts):
+        if det in self._dets.keys():
+            self._dets[det].set_hv(volts)
+        else:
+            raiseRuntimeError('No Det to set HV in DigiBaseController')
 
+    def check_HV_ADC(self,det):
+        if det in self._dets.keys():
+            self._dets[det].check_HV_ADC()
+        else:
+            raiseRuntimeError('No Det to check HV ADC in DigiBaseController')
+
+    #### Gain Stabalization ####
+    def enable_gain_stab(self,det=None):
+        if det is None:
+            for det in self._dets:
+                self._dets[det].enable_gain_stab()
+        elif det in self._dets.keys():
+            self._dets[det].enable_gain_stab()
+        else:
+            raise ValueError('enable_gain_stab called with invalid det: {0}'.format(det))
+
+    def disable_gain_stab(self,det=None):
+        if det is None:
+            for det in self._dets:
+                self._dets[det].disable_gain_stab()
+        elif det in self._dets.keys():
+            self._dets[det].disable_gain_stab()
+        else:
+            raise ValueError('disable_gain_stab called with invalid det: {0}'.format(det))
+
+    def set_gain_stab_pars(self,det,minVal,midVal,maxVal):
+        if det in self._dets.keys():
+            self._dets[det].set_gain_stab_pars(minVal,midVal,maxVal)
+        else:
+            raise ValueError('set_gain_stab_pars called with invalid det: {0}'.format(det))
+
+    #### Offset Stabalization ####
+    def enable_offset_stab(self,det=None):
+        if det is None:
+            for det in self._dets:
+                self._dets[det].set_enable_offset_stab(1)
+        elif det in self._dets.keys():
+            self._dets[det].set_enable_offset_stab(1)
+        else:
+            raise ValueError('enable_offset_stab called with invalid det: {0}'.format(det))
+
+    def disable_offset_stab(self,det=None):
+        if det is None:
+            for det in self._dets:
+                self._dets[det].set_enable_gain_stab(0)
+        elif det in self._dets.keys():
+            self._dets[det].set_enable_gain_stab(0)
+        else:
+            raise ValueError('disable_offset_stab called with invalid det: {0}'.format(det))
+
+    def get_offset_stab_pars(self,det):
+	if det in self._dets:
+	     self._dets[det].get_offset_stab_pars()
+
+    def set_offset_stab_pars(self,det,minVal,midVal,maxVal):
+        if det in self._dets.keys():
+            self._dets[det].set_offset_stab_pars(minVal,midVal,maxVal)
+        else:
+            raise ValueError('set_gain_stab_pars called with invalid det: {0}'.format(det))
+
+
+    #### Data ####
     def clear_sample(self):
         for det in self._dets.values():
             det.clear_spectrum()
@@ -662,48 +1176,115 @@ class DigiBaseController(object):
                 sp[sn][key]=value
         return sp
 
+    def clear_counters(self,det):
+	if det in self._dets
+	    self._dets[det].set_clear_counters(self,1)
+	    self._dets[det].set_clear_counters(self,0)
+	    if self._dets[det].get_clear_counters(self)!=0
+		raise ValueError('Issue in clearing counters')
+
+    def set_mem_size(self,det,memSize):
+	if det in self._dets
+	    self._dets[det].set_mem_size(memSize)
+        else:
+            raise RuntimeError('No Det to set MEMSIZE')
+
+    def get_mem_start(self,det):
+	if det in self._dets
+	    self._dets[det].get_mem_start()
+        else:
+            raiseRuntimeError('No Det to get MEMSTART')
+
+    def set_mem_start(self,det,memStart):
+	if det in self._dets
+	    self._dets[det].set_mem_size(memStart)
+        else:
+            raiseRuntimeError('No Det to set MEMSTART')
+
+    def get_fifo_count(self,det):
+	if det in self._dets
+	    self._dets[det].get_fifo_count()
+
+    #### Acquisition ####
+    def start_acquisition(self):
+        t=time.time()
+        self._acquireFlag=True
+        for det in self._dets.values():
+            det.start_acquisition()
+        return t
+
+    def check_collect(self,det):
+        if det in self._dets.keys():
+            self._dets[det].check_collect()
+        else:
+            raiseRuntimeError('No Det to check collection status')
+
+    def get_width(self,det):
+	if det in self._dets.keys():
+	    self._dets[det].get_width()
+
+    def set_width(self,det,shapeTime):
+	if det in self._dets:
+	    self._dets[det].set_width(shapeTime)
+	    self.reset(det)
+
+    def get_PHA_mode(self,det):
+	if det in self._dets
+	    self._dets[det].get_PHA_mode()
+        else:
+            raiseRuntimeError('No Det to get PHA Mode')
+
+    def set_PHA_mode(self,det,PHAmode):
+	if det in self._dets:
+	    self._dets[det].set_PHA_mode(PHAmode)
+        else:
+            raiseRuntimeError('No Det to set PHA Mode')
+
+    def reset(self,det):
+	if det in self._dets:
+	    self._dets[det].reset()
+
+    def do_startup_checks(self):
+        tHold=5
+        print 'Waiting {0} seconds for Dets to Stabilize'.format(tHold)
+        time.sleep(5)
+
     def getDetList(self):
         return self._dets.keys()
 
     def getDet(self,detName):
         return self._dets[detName]
 
-    def setHV(self,det,volts):
-        if det in self._dets.keys():
-            self._dets[det].set_hv(volts)
+    #### Time ####
+    def get_enable_livetime_preset(self,det):
+	if det in self._dets:
+	    self._dets[det].get_enable_livetime_preset()
         else:
-            raiseRuntimeError('No Det to set HV in DigiBaseController')
+            raiseRuntimeError('No Det to get enable livetime preset')
 
-    def enable_gain_stab(self,det=None):
-        if det is None:
-            for det in self._dets:
-                self._dets[det].enable_gain_stab()
-        elif det in self._dets.keys():
-            self._dets[det].enable_gain_stab()
+    def set_enable_livetime_preset(self,det,value):
+	if det in self._dets:
+	    self._dets[det].set_enable_livetime_preset(value)
         else:
-            raise ValueError('enable_gain_stab called with invalid det: {0}'.format(det))
+            raiseRuntimeError('No Det to set enable livetime preset')
 
-    def disable_gain_stab(self,det=None):
-        if det is None:
-            for det in self._dets:
-                self._dets[det].disable_gain_stab()
-        elif det in self._dets.keys():
-            self._dets[det].disable_gain_stab()
-        else:
-            raise ValueError('disable_gain_stab called with invalid det: {0}'.format(det))
+    #### Insight Module ####
+    #status bit 2, get/set insight ctl
 
+    #### Enable Input ####
+    #status bit 1,
 
-    def set_gain_stab_pars(self,det,minVal,midVal,maxVal):
-        if det in self._dets.keys():
-            self._dets[det].set_gain_stab_pars(minVal,midVal,maxVal)
-        else:
-            raise ValueError('set_gain_stab_pars called with invalid det: {0}'.format(det))
+    #### Discriminator ####
+    #get LLD/ULD
+    def set_LLD(self,det,lldBin):
+	if det in self._dets:
+	    uFG = np.uint32(self._dets[det].get_fine_gain() & 0x7FFFFF)>>6
+	    self._dets[det].set_LLD(np.uint32(float(lldBin)*0x100000/float(uFG)*512))
 
-    def do_startup_checks(self):
-        tHold=5
-        print 'Waiting {0} seconds for Dets to Stabilize'.format(tHold)
-        time.sleep(5)
-        
+    def set_ULD(self,det,uldBin):
+	if det in self_dets:
+	    self._dets[det].set_ULD(uldBin)
+
 class DigiBaseSpoofer(object):
     def __init__(self):
         print 'Spoofing class of Digibase'
