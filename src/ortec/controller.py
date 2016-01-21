@@ -1058,6 +1058,8 @@ class DigiBaseController(object):
     pID=31
     def __init__(self, producer,topic):
         print 'Constructing DigiBaseController()'
+
+        ####THIS IS WHRERE USB DEVICES ARE MANAGED and will have to be checekd at a higher level
         self._dets={}
         self._acquireFlag=False
         self._usbCon=USBContext()
@@ -1078,8 +1080,10 @@ class DigiBaseController(object):
                 pass
 
         if len(self._dev.keys()) <=0:
+            print 'No Digibase Connected'
             producer.send_messages(topic,'STOP')
             raise RuntimeError("No Digibase Connected")
+        
         else:
             for sn,dev in self._dev.items():
                 #print 'Getting Serial Number and Constructing Digibase for: ',sn

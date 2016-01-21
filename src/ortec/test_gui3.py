@@ -35,6 +35,14 @@ class SpectraPlotWidget(pg.PlotWidget):
         # axis.enableAutoSIPrefix(False)
         self.line = self.plot()
 
+class SpectrogramWidget(pg.PlotWidget):
+    def __init__(self):
+        pg.PlotWidget.__init__(self)
+        self.img = pg.ImageView()
+        #self.img.setImage(autoRange=True)
+        self.img.view.setAspectLocked(False)
+        
+
 
 class CountsPlotWidget(pg.PlotWidget):
     '''Plot widget subclassing the pyqtgraph plot widget.
@@ -78,7 +86,8 @@ def update():
     global spectra, data, total_counts, time
     dict = get_data()
     if dict == 'STOP':
-        return   ###FIGURE OUT HOW TO END NICELY
+        exit()
+           ###FIGURE OUT HOW TO END NICELY
     color_mask = ['w','b','g','y','r','p']
     for i,key in enumerate(dict.keys()):
         if key not in data.keys():
@@ -91,12 +100,14 @@ def update():
         data[key] += dict[key]['spectrum']
         total_counts[key].append(sum(dict[key]['spectrum']))
         time[key].append(dict[key]['time'])
+        
         if i ==0:
             spectraWidget.clear()
             #spectra.setData(data[key],pen = color_mask[i])
     
         spectraWidget.addItem(pg.PlotCurveItem(data[key], pen=color_mask[i]))
-        countWidget.addItem(pg.PlotCurveItem(time[key],total_counts[key],pen=color_mask[i]))
+        countWidget.addItem(pg.PlotCurveItem(total_counts[key],time[key],pen=color_mask[i]))
+        #spectrogramWidget.image(
 #        counts.setData(time[key],total_counts[key],pen='r')
         app.processEvents()     
 
@@ -107,11 +118,11 @@ def get_data():
     if msg.value != 'STOP':
         dict = json.loads(msg.value)
         print dict['15226068']['time']
+
     else:
         return 'STOP'
-    
+    #self.signal.emit(dict) #to emit to spectrogram
     return dict
-
 
 
 
@@ -119,15 +130,17 @@ app = QtGui.QApplication(sys.argv)
 mainWindow = QtGui.QMainWindow()
 area = DockArea()
 mainWindow.setCentralWidget(area)
-mainWindow.resize(1000,500)
+mainWindow.resize(1000,1200)
 mainWindow.setWindowTitle('MURS Real Time Data')
 
 d1 = Dock('Specta',size=(500,300)) #spectra plot
 d2 = Dock('Total Counts',size=(500,300)) #total counts plot
-d3 = Dock('Controls',size=(1,1))
-area.addDock(d1, 'left')
+d3 = Dock('Controls',size=(2,4))
+d4 = Dock('Waterfall',size=(300,1200))
+area.addDock(d1, 'bottom')
 area.addDock(d2, 'right')
 area.addDock(d3, 'top')
+area.addDock(d4,'left')
 
 
     
@@ -145,8 +158,12 @@ d2.addWidget(countWidget)
 buttonWidget = ButtonWidget()
 d3.addWidget(buttonWidget)
 
+spectrogramWidget = SpectrogramWidget()
+d4.addWidget(spectrogramWidget)
+
 spectra = spectraWidget.line
 counts = countWidget.line
+
     
 
 data = {}
@@ -155,22 +172,27 @@ total_counts = {}
 
 #KAFKA consumer
 consumer = KafkaConsumer('data_messages',bootstrap_servers=['localhost:9092'])
-print consumer.get_partition_offsets('data_messages',0,-1,1)
+#print consumer.get_partition_offsets('data_messages',0,-1,1)
 
-quit()
+
+
 #For sending button messages
 port = '5556'
 context = zmq.Context()
-socket = context.socket(zmq.SUB)
-socket.connect("tcp://localhost:%s" % port)
-topicfilter = "1001"
-socket.setsockopt(zmq.SUBSCRIBE, topicfilter)
+socket = context.socket(zmq.PUB)
+socket.bind("tcp://*:%s" % port)
+topic = '1001'
+
 
 
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(0)
+timer.start(0.5)
+
+
+#print "sending message"
+#socket.send(topic+'Hola')
 
 if __name__ == '__main__':
     mainWindow.show()

@@ -20,6 +20,7 @@ import argparse
 import json
 import zmq
 from kafka import SimpleProducer, KafkaClient
+from kafka.common import LeaderNotAvailableError
 
 class WriteToFileProcess(mp.Process):
     def __init__(self,q,logger):
@@ -54,7 +55,7 @@ class WriteToFileProcess(mp.Process):
 ##########################################################################        
 def daq(MESSAGE_Q, **kwargs):
 
-    print 'here'
+    #print 'here'
     #MESSAGE_Q is the global queue that sends "messages" from the master thread...
     
 #kwargs can be:
@@ -94,12 +95,13 @@ def daq(MESSAGE_Q, **kwargs):
     kafka = KafkaClient('localhost:9092')
     producer = SimpleProducer(kafka)
     topic = 'data_messages'
-    
+
+        
     #get kwargs out and set defaults for anything that hasn't been set
     default = False
 
     check = kwargs.get('check', default)
-    acq_time = kwargs.get('time',defaultSamplePeriod)
+    acq_time = kwargs.get('acq_time',defaultSamplePeriod)
     sample_duration = kwargs.get('sample_duration', defaultSamplePeriod)
     log_period = kwargs.get('log_period', defaultLogPeriod)
     data_file = kwargs.get('file',defaultFileName)
@@ -244,11 +246,16 @@ def daq(MESSAGE_Q, **kwargs):
         sample=dbc.getSample(duration=sample_duration)
         #send data to write file thread
         qFile.put(sample)
-
+        
         #send data to Kafka
         messagedata = json.dumps(sample)
-        producer.send_messages(topic, messagedata)
-        
+        #print messagedata
+        try:
+            producer.send_messages(topic, messagedata)
+        except LeaderNotAvailableError:
+            time.sleep(1)
+            'here'
+            producer.send_messages(topic, messagedata)
         
                 
 
