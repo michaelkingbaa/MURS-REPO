@@ -1,0 +1,36 @@
+{"namespace": "com.baadata.murs.sensor.messages",
+ "name":"MURSArray",
+ "type":"array",
+ "items":
+   {
+    "type": "record",
+    "name": "MURSSensorReport",
+    "fields": [
+     {"name": "serialnumber","type": "string"},
+     {"name": "fine_gain", "type": "double"},
+     {"name": "fine_gain_act", "type": "long"},
+     {"name": "fine_gain_set", "type": "long"},
+     {"name": "gain_stab_enable", "type": "long"},
+     {"name": "gain_stab_max", "type": "long"},
+     {"name": "gain_stab_mid", "type": "long"},
+     {"name": "gain_stab_min", "type": "long"},
+     {"name": "hv_act", "type": "long"},
+     {"name": "hv_actual", "type": "double"},
+     {"name": "hv_set", "type": "long"},
+     {"name": "livetime", "type": "long"},
+     {"name": "lld_set", "type": "long"},
+     {"name": "lt_preset", "type": "long"},
+     {"name": "offset_act", "type": "long"},
+     {"name": "offset_set", "type": "long"},
+     {"name": "offset_stab_max", "type": "long"},
+     {"name": "offset_stab_mid", "type": "long"},
+     {"name": "offset_stab_min", "type": "long"},
+     {"name": "realtime", "type": "long"},
+     {"name": "rt_preset", "type": "long"},
+     {"name": "spectrum","type":{"type":"array","items":"long"}},
+     {"name": "time", "type": "double"},
+     {"name": "uld_set", "type": "long"},
+     {"name": "width", "type": "long"}
+     ]
+   }
+}
