@@ -11,7 +11,7 @@ import sys
 
 class mursArrayMessage:
 
-        def __init__(self, schemaFile, topic, client):
+        def __init__(self, schemaFile):
             try:
                 self.schema = avro.schema.parse(open(schemaFile).read())
             except:
@@ -46,7 +46,7 @@ class mursArrayMessage:
             sensArray = reader.read(decoder)
 
             arrayDict = {}
-            for i in sensArray:
+            for i in range(len(sensArray)):
                 item = sensArray[i]
                 sn = item['serialnumber']
                 item['spectrum'] = tuple(item['spectrum'])
