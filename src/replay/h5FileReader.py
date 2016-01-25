@@ -2,6 +2,7 @@ __author__ = 'chivers'
 
 import h5py as h5
 import numpy as np
+import sys
 
 class mursH5FileReader:
 
@@ -74,4 +75,6 @@ class mursH5FileReader:
             rec[key] = sensorRec
 
         return rec
+
+
 
