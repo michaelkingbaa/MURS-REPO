@@ -1,4 +1,4 @@
-__author__ = 'chivers'
+__author__ = 'kelley'
 
 
 from kafka import SimpleProducer, KafkaClient
@@ -12,7 +12,7 @@ from kafka.common import LeaderNotAvailableError
 
 import sys
 
-class mursArrayMessage:
+class mursKsigmaMessage:
         
         def __init__(self, schemaFile, topic, client):
             self.topic = topic
@@ -37,14 +37,12 @@ class mursArrayMessage:
 
             # Convert dictionary of dictionaries to List for Avro serialization
             # Need to save serialnumber in List Field
-            # Need to convert spectrum from tuple to list
+            
             sensArray = []
             for key in arrayDict:
                 sens = arrayDict[key]
-                sens["spectrum"] = list(sens["spectrum"])
                 sens["serialnumber"] = key
                 sensArray.append(sens)
-
             # Prepare avro encoder and write to raw bytes
             bytes_writer = io.BytesIO()
             encoder = avro.io.BinaryEncoder(bytes_writer)
@@ -63,8 +61,6 @@ class mursArrayMessage:
                 
                 item = sensArray[i]
                 sn = item['serialnumber']
-                del item['serialnumber']
-                item['spectrum'] = tuple(item['spectrum'])
                 arrayDict[sn] = item
 
             return arrayDict

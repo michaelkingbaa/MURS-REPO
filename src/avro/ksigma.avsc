@@ -1,0 +1,14 @@
+{"namespace": "com.baadata.murs.sensor.messages",
+ "name":"Ksigma",
+ "type":"array",
+ "items":
+   {
+    "type": "record",
+    "name": "MURSKsigmaReport",
+    "fields": [
+     {"name": "serialnumber","type": "string"},
+     {"name": "time", "type": "double"},
+     {"name": "k_stat", "type": "double"}
+     ]
+   }
+}

@@ -1,4 +1,4 @@
-__author__ = 'chivers'
+__author__ = 'kelley'
 
 
 from kafka import SimpleProducer, KafkaClient
@@ -12,7 +12,7 @@ from kafka.common import LeaderNotAvailableError
 
 import sys
 
-class mursArrayMessage:
+class mursDirMessage:
         
         def __init__(self, schemaFile, topic, client):
             self.topic = topic
@@ -35,20 +35,10 @@ class mursArrayMessage:
             #Setup avro datum Writer
             writer = avro.io.DatumWriter(self.schema)
 
-            # Convert dictionary of dictionaries to List for Avro serialization
-            # Need to save serialnumber in List Field
-            # Need to convert spectrum from tuple to list
-            sensArray = []
-            for key in arrayDict:
-                sens = arrayDict[key]
-                sens["spectrum"] = list(sens["spectrum"])
-                sens["serialnumber"] = key
-                sensArray.append(sens)
-
             # Prepare avro encoder and write to raw bytes
             bytes_writer = io.BytesIO()
             encoder = avro.io.BinaryEncoder(bytes_writer)
-            writer.write(sensArray, encoder)
+            writer.write(arrayDict, encoder)
             return bytes_writer.getvalue()
 
         def decode(self, bytes):
@@ -56,18 +46,7 @@ class mursArrayMessage:
             decoder = avro.io.BinaryDecoder(bytes_reader)
             reader = avro.io.DatumReader(self.schema)
             sensArray = reader.read(decoder)
-
-            arrayDict = {}
-            #print sensArray
-            for i in range(len(sensArray)):
-                
-                item = sensArray[i]
-                sn = item['serialnumber']
-                del item['serialnumber']
-                item['spectrum'] = tuple(item['spectrum'])
-                arrayDict[sn] = item
-
-            return arrayDict
+            return sensArray
 
 
         def publishMessage(self, arrayDict):

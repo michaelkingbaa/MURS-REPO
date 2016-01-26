@@ -4,22 +4,33 @@ import json
 from ksigma import ksigma
 import numpy as np
 from kafka.common import LeaderNotAvailableError
+import sys
+sys.path.append('/Users/nicolekelley/git_repos/murs/src/avro')
+from mursavro import mursArrayMessage
+from ksigma_avro import mursKsigmaMessage
 
-def ksigma_manager(background_buffer, middle_buffer, event_buffer, wanted_client):
+
+def ksigma_manager(background_buffer, middle_buffer, event_buffer, wanted_client, data_schema, data_topic, ksigma_topic, ksigma_schema):
     counter = 0
     outlier = 0
     total = 0
     
     #check that consumer is ready for 'data_messages'
-    while not 'data_messages' in KafkaClient(wanted_client).topic_partitions.keys():
+    
+    while not data_topic in KafkaClient(wanted_client).topic_partitions.keys():
         print 'waiting for data Client in ksigma thread'
         time.sleep(1)
-    consumer = KafkaConsumer('data_messages',bootstrap_servers=wanted_client)
+    consumer = KafkaConsumer(data_topic,bootstrap_servers=wanted_client)
 
-    #set up producer
-    kafka = KafkaClient(wanted_client)
-    producer = SimpleProducer(kafka)
+    #Initialize Ksigma messaging
     topic = 'ksigma_messages'
+    ksigma_messaging = mursKsigmaMessage(ksigma_schema, ksigma_topic, wanted_client)
+
+
+
+    #initialize reading of messages deserialization
+    data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
+    
 
     #set up ksgigma message for Kafka
     message = {}
@@ -32,8 +43,9 @@ def ksigma_manager(background_buffer, middle_buffer, event_buffer, wanted_client
     for msg in consumer:
 
          if msg.value != 'STOP':
-            dict = json.loads(msg.value)
             
+            dict = data_handler.decode(msg.value) 
+             
             #instantiate objects
             if flag == 0:
                 for key in dict.keys():
@@ -53,13 +65,9 @@ def ksigma_manager(background_buffer, middle_buffer, event_buffer, wanted_client
                     outlier +=1.
                 else:
                     total +=1.
-                    
-            payload = json.dumps(message)
-            try:
-                producer.send_messages(topic,payload)
-            except LeaderNotAvailableError:
-                time.sleep(1)
-                producer.send_messages(topic, payload)
+
+            ksigma_messaging.publishMessage(message)
+           
             
             
             #print counter

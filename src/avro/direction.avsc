@@ -1,0 +1,10 @@
+{"namespace": "com.baadata.murs.sensor.messages",
+ "name":"Direction",
+ "type": "record",
+ "name": "MURSdirectionReport",
+ "fields": [
+ 	   {"name": "direction", "type": "double"},
+     	   {"name": "time", "type": "double"}
+     	   ]	   
+}
+

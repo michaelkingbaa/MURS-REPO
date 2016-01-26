@@ -65,7 +65,7 @@ class DataLogger(object):
             self.initializeBuffer(sample)
 
         if self._bufferIndex<self._bufferLength:
-            print 'Adding sample to buffer at position {0}'.format(self._bufferIndex)
+            #print 'Adding sample to buffer at position {0}'.format(self._bufferIndex)
             for sn in sample.keys():
                 for key in sample[sn].keys():
                     self._buffer[sn][key][self._bufferIndex]=sample[sn][key]

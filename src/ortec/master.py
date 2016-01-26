@@ -1,3 +1,4 @@
+import sys
 from threading import Thread, Condition
 from daq import daq
 from Queue import Queue
@@ -7,6 +8,11 @@ import json
 import datetime
 from kafka import SimpleConsumer, KafkaClient, KafkaConsumer
 from ksigma_thread_manager import ksigma_manager
+from direction_thread_manager import direction_manager
+sys.path.append('/Users/nicolekelley/git_repos/murs/src/avro')
+from mursavro import mursArrayMessage 
+from ksigma_avro import mursKsigmaMessage
+from direction_avro import mursDirMessage
 
 #Setting up messaging queue for listening to GUI/ can control threads
 port = "5556"
@@ -36,9 +42,17 @@ if __name__ == "__main__":
     #perform a check to see if Digibases are plugged in 
     #code is written  so that if check is kwargs=(check=True) is run and there are no digibases, queue returns _sentinel    
     
-#    thread = Thread(target = daq, args = (daq_message,),kwargs = dict(spoof_digibase = True, time=10))
+    #    thread = Thread(target = daq, args = (daq_message,),kwargs = dict(spoof_digibase = True, time=10))
+
+    #read this is later
+    data_schema = '../avro/mursArray.avsc'
+    data_topic = 'data_messages'
+    ksigma_topic = 'ksigma_messages'
+    direction_topic = 'direction_messages'
+    ksigma_schema = '../avro/ksigma.avsc'
+
     
-    thread = Thread(target = daq, args=(daq_message,), kwargs = dict(acq_time=20))
+    thread = Thread(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=20))
     thread.start()
 
 
@@ -49,15 +63,23 @@ if __name__ == "__main__":
     event_buffer = 2 #number of data acquisitions to determine time frame of k-sigma
     middle_buffer = 2
     
-    thread_ksigma = Thread(target = ksigma_manager, args = (background_buffer, middle_buffer, event_buffer, wanted_client))
+    thread_ksigma = Thread(target = ksigma_manager, args = (background_buffer, middle_buffer, event_buffer, wanted_client, data_schema, data_topic, ksigma_topic, ksigma_schema))
     thread_ksigma.start()
 
+    #read these in at some point
+    background_buffer = 8
+    event_buffer = 1
+    middle_buffer = 2
+    direction_schema = '../avro/direction.avsc'
+    setup_file = 'detector_location.config'
+
+    thread_dir = Thread(target = direction_manager, args = (setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema))
+    thread_dir.start()
+                                                            
 
     #get clients to listen to Kafka messages
     
-    data_topic = 'data_messages'
-    ksigma_topic = 'ksigma_messages'
-    
+        
     
     kafka_client = KafkaClient(wanted_client)
     print 'master thinks',kafka_client.topic_partitions.keys()
@@ -72,7 +94,17 @@ if __name__ == "__main__":
         time.sleep(1)
         
     consumer_ksigma = KafkaConsumer(ksigma_topic, bootstrap_servers = wanted_client)
+
+    while not direction_topic in KafkaClient(wanted_client).topic_partitions.keys():
+        print 'waiting for direction Client'
+        time.sleep(1)
+        
+    consumer_direction = KafkaConsumer(direction_topic, bootstrap_servers = wanted_client)
     
+    #initialize reading of messages -- for testing
+    data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
+    ksigma_messaging = mursKsigmaMessage(ksigma_schema, ksigma_topic, wanted_client)
+    direction_messaging = mursDirMessage(direction_schema, direction_topic, wanted_client)
     
     while True:
 
@@ -93,19 +125,27 @@ if __name__ == "__main__":
         
         if msg.value == 'STOP':
             print 'kafka is really empty'
+            time.sleep(2)
             break
-        data = json.loads(msg.value)
-        print data
-
+        
+        data = data_handler.decode(msg.value)
+        #print data
+        #print counter
         msg = consumer_ksigma.next()
-        ksigma = json.loads(msg.value)
-#        print ksigma['15226068']
+        ksigma = ksigma_messaging.decode(msg.value)
+
+        dir_msg = consumer_direction.next()
+        direction = direction_messaging.decode(dir_msg.value)
+        print direction
+        
+        #print ksigma['15226068']
         
     
         
                     
     
     thread.join()
-    #thread_ksigma.join()
+    thread_ksigma.join()
+    thread_dir.join()
 
 

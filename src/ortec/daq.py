@@ -21,6 +21,10 @@ import json
 import zmq
 from kafka import SimpleProducer, KafkaClient
 from kafka.common import LeaderNotAvailableError
+import sys
+sys.path.append('/Users/nicolekelley/git_repos/murs/src/avro')
+from mursavro import mursArrayMessage
+
 
 class WriteToFileProcess(mp.Process):
     def __init__(self,q,logger):
@@ -53,7 +57,7 @@ class WriteToFileProcess(mp.Process):
         
 ######################### Main Execution Portion #########################
 ##########################################################################        
-def daq(MESSAGE_Q, **kwargs):
+def daq(MESSAGE_Q, schema_file, **kwargs):
 
     #print 'here'
     #MESSAGE_Q is the global queue that sends "messages" from the master thread...
@@ -92,10 +96,13 @@ def daq(MESSAGE_Q, **kwargs):
     defaultConfigFile='./ortec_config_default.ini'
 
     #set up kafka producer
-    kafka = KafkaClient('localhost:9092')
-    producer = SimpleProducer(kafka)
+    wanted_client = 'localhost:9092'
+    #kafka = KafkaClient('localhost:9092')
+    #producer = SimpleProducer(kafka)
     topic = 'data_messages'
-
+    
+    #Initialize Kafka messaging with avro
+    data_messaging = mursArrayMessage(schema_file,  topic, wanted_client)
         
     #get kwargs out and set defaults for anything that hasn't been set
     default = False
@@ -112,24 +119,24 @@ def daq(MESSAGE_Q, **kwargs):
     
     if check:
         print 'Performing Check to see if we can connect to Digibases'
-        dbc=DigiBaseController(producer,topic)
+        dbc=DigiBaseController(data_messaging.producer,topic)
         exit()
     
     if not minAcqTime <= acq_time <=maxAcqTime:
-        producer.send_messages(topic,'STOP')
+        data_messaging.producer.send_messages(topic,'STOP')
         raise RuntimeError('time: {0}  must be between {1} - {2} seconds. (use -h for help)'.format(acq_time,minAcqTime,maxAcqTime))
     if sample_duration>acq_time:
-        producer.send_messages(topic,'STOP')
+        data_messaging.producer.send_messages(topic,'STOP')
         raise RuntimeError('Sample Duration must be less than Acquisition Time')
 
     if sample_duration<minSamplePeriod:
-        producer.send_messages(topic,'STOP')
+        data_messaging.producer.send_messages(topic,'STOP')
         raise RuntimeError('Sample Duration must be greater than {0} seconds'.format(minSamplePeriod))
     if log_period<=minLogPeriod:
-        producer.send_messages(topic,'STOP')
+        data_messaging.producer.send_messages(topic,'STOP')
         raise RuntimeError('Log Period must be greater than {0} seconds'.format(minLogPeriod))
     if not os.path.exists(os.path.abspath(directory)):
-        producer.send_messages(topic,'STOP')
+        data_messaging.producer.send_messages(topic,'STOP')
         raise RuntimeError('Log Directory does not exist!...Cannot set log to: {0}'.format(directory))
     fileName=os.path.join(os.path.abspath(directory),data_file)
     
@@ -137,7 +144,7 @@ def daq(MESSAGE_Q, **kwargs):
         warnings.warn('Log file already exists!! file: {0} may be overwritten!!'.format(fileName))
         
     if not os.path.exists(os.path.abspath(config_file)):
-        producer.send_messages(topic,'STOP')
+        data_messaging.producer.send_messages(topic,'STOP')
         raise RuntimeError('Detector Configuration File: {0} Not Found!!'.format(config_file))
 
         
@@ -156,7 +163,7 @@ def daq(MESSAGE_Q, **kwargs):
         warnings.warn("Spoofing Digibase Input for debug purposes")
         dbc=DigiBaseSpoofer()
     else:
-        dbc=DigiBaseController(producer,topic)
+        dbc=DigiBaseController(data_messaging.producer,topic)
         
     #check for digibases
     
@@ -244,18 +251,24 @@ def daq(MESSAGE_Q, **kwargs):
 
         #print 'Acquiring Sample {0}'.format(s)
         sample=dbc.getSample(duration=sample_duration)
+
         #send data to write file thread
+        
         qFile.put(sample)
         
         #send data to Kafka
-        messagedata = json.dumps(sample)
+
+        data_messaging.publishMessage(sample)
+        
+        #messagedata = json.dumps(sample)
+
         #print messagedata
-        try:
-            producer.send_messages(topic, messagedata)
-        except LeaderNotAvailableError:
-            time.sleep(1)
-            'here'
-            producer.send_messages(topic, messagedata)
+        #try:
+        #    data_messaging.producer.send_messages(topic, messagedata)
+        #except LeaderNotAvailableError:
+        #    time.sleep(1)
+        #    'here'
+        #    data_messaging.producer.send_messages(topic, messagedata)
         
                 
 
@@ -265,7 +278,7 @@ def daq(MESSAGE_Q, **kwargs):
     tHold=2#seconds
     print 'Waiting {0} seconds for processes to finish'.format(tHold)
     pFile.shutdown()
-    producer.send_messages(topic,'STOP')
+    data_messaging.producer.send_messages(topic,'STOP')
     time.sleep(tHold)
     print 'WriteToFileProcess state: {0}'.format(pFile.is_alive())
     print '##########################################################################'

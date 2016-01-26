@@ -16,6 +16,8 @@ from logger import DataLogger
 import argparse
 import json
 import datetime as dt
+from kafka import SimpleProducer, KafkaClient
+from kafka.common import LeaderNotAvailableError
 
 class BitRegister(object):
     def __init__(self,name,initByte):
@@ -1081,7 +1083,11 @@ class DigiBaseController(object):
 
         if len(self._dev.keys()) <=0:
             print 'No Digibase Connected'
-            producer.send_messages(topic,'STOP')
+            try:
+                producer.send_messages(topic,'STOP')
+            except LeaderNotAvailableError:
+                time.sleep(1)
+                producer.send_messages(topic,'STOP')
             raise RuntimeError("No Digibase Connected")
         
         else:
