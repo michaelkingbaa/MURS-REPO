@@ -34,6 +34,10 @@ class BitRegister(object):
         self._byte=chr(tmp)
         return
 
+    def get_bit(self,bit):
+	self._bit = '{0:08b}'.format(ord(self._byte))[-1*(bit+1)]
+	return self._bit
+
     def set_value(self,intVal):
         if type(intVal) is not type(int()):
             raise ValueError('intValue must be of type int')
@@ -70,7 +74,7 @@ class ByteRegister(object):
     
     def set_value(self,intValue):
         if type(intValue) is not type(int()):
-            raise ValueError('Set Value but be of type int in ByteRegister')
+            raise ValueError('Set Value must be of type int in ByteRegister')
         if len(self._bytes) ==1:
             self._bytes=pack('B',intValue)
         elif len(self._bytes)==2:
@@ -205,20 +209,23 @@ class ControlRegister(object):
         tmp_lo=self._byteList[index].get_value()
         index=self._regName.index('status')
         tmp_hi=self._byteList[index].get_value()[5:7]
-        return (tmp_lo | tmp_hi[0]<<8 | tmp_hi[1]<<9)*1.25#return value in volts
+        return (tmp_lo | tmp_hi[1]<<8 | tmp_hi[0]<<9)*1.25#return value in volts
 
     def set_enable_hv(self,value):
         index=self._regName.index('control')
         if value in [0,1]:
             self._byteList[index].set_bit(6,value)
-            self._byteList[self._regName.index('control2')].set_bit(2,value)
         else:
             raise ValueError('set_enable_hv value must be 0,1')
 
     def check_HV_ADC(self):
 	#high when bias supply ADC is busy converting
-	index=self.regName.index('status')
-	return self._byteList[index].get_bytes()[3]
+	index=self._regName.index('status')
+	return self._byteList[index].get_bit(3)
+
+    def trigger_hv_ADC(self,value):
+	index=self._regName.index('control2')
+	self._byteList[index].set_bit(2,value)
 
     #### Fine Gain ####
     def set_fine_gain(self,fg):
@@ -234,6 +241,13 @@ class ControlRegister(object):
         tmp=self._byteList[index].get_value()/2.**22
         return tmp
         
+    def get_fine_gain_set(self):
+	index=self._regName.index('fine_gain_set')
+	tmp=''
+	for byte in self._byteList[index].get_bytes():
+		tmp='{0:08b}'.format(ord(byte))+tmp
+	return int(tmp,2)
+
     #### Gain Stabalization ####
     def set_enable_gain_stab(self,value):
         index=self._regName.index('control')
@@ -253,8 +267,8 @@ class ControlRegister(object):
 
     #### Offset Stabalization ####
     def get_enable_offset_stab(self):
-	index=self.regName.index('control')
-	return self._byteList[index].get_bytes()[5]
+	index=self._regName.index('control')
+	return self._byteList[index].get_bit(5)
 
     def set_enable_offset_stab(self,value):
         index=self._regName.index('control')
@@ -265,16 +279,17 @@ class ControlRegister(object):
 
     def get_offset(self):
 	index=self._regName.index('offset_act')
-	return self._byteList[index].get_bytes()
+	return self._byteList[index].get_value()
 
     def set_offset(self,offset):
 	index=self._regName.index('offset_set')
-	self._byteList[index].set_bytes(offset)
+	self._byteList[index].set_value(offset)
 
     def get_offset_stab_pars(self):
         names=['offset_stab_min','offset_stab_mid','offset_stab_max']
 	pars=[]
-        for index in names:
+        for name in names:
+	    index=self._regName.index(name)
             pars.append(self._byteList[index].get_value())
 	return pars
 
@@ -289,17 +304,17 @@ class ControlRegister(object):
 
     #### Data ####
     def get_clear_counters(self):
-	index=self.regName.index('control2')
-	self._byteList[index].get_bytes()[0]
+	index=self._regName.index('control2')
+	return self._byteList[index].get_bit(0)
 
     def set_clear_counters(self,value):
-	index=self.regName.index('control2')
+	index=self._regName.index('control2')
 	if value in [0,1]:
 	    self._byteList[index].set_bit(0,value)
 
     def get_enable_overflow(self):
-	index=self.regName.index('control2')
-	return self._byteList[index].get_bytes()[6]
+	index=self._regName.index('control2')
+	return self._byteList[index].get_bit(6)
 
     def set_enable_overflow(self,value):
         index=self._regName.index('control2')
@@ -309,33 +324,33 @@ class ControlRegister(object):
             raise ValueError('set_enable_overflow value must be 0,1')
 
     def get_fake_ADC(self):
-	index=self.regName.index('control2')
-	self._byteList[index].get_bytes()[1]
+	index=self._regName.index('control2')
+	return self._byteList[index].get_bit(1)
 
     def set_fake_ADC(self,value):
-	index=self.regName.index('control2')
+	index=self._regName.index('control2')
 	if value in [0,1]:
 	    self._byteList[index].set_bit(1,value)
 
     def get_mem_size(self): # uncalled
-        index=self.regName.index('mem_size')
+        index=self._regName.index('mem_size')
         return self._byteList[index].get_bytes()
         
     def set_mem_size(self,value):
-	index=self.regName.index('mem_size')
+	index=self._regName.index('mem_size')
 	self._byteList[index].set_value(value)
 
     def get_mem_start(self):
-	index=self.regName.index('mem_start')
+	index=self._regName.index('mem_start')
 	return self._byteList[index].get_bytes()
 
     def set_mem_start(self,value):
-	index=self.regName.index('mem_start')
+	index=self._regName.index('mem_start')
 	self._byteList[index].set_value(value)
 
     def get_fifo_count(self):
-	index=self.regName.index('ff_count')
-	self._byteList[index].get_bytes()
+	index=self._regName.index('ff_count')
+	return self._byteList[index].get_bytes()
 
     #### Acquisition ####
     def set_acq_start(self,value):
@@ -347,42 +362,46 @@ class ControlRegister(object):
 
     def check_collect(self):
 	# returns collection status active/inactive
-	index=self.regName.index('status')
-	return self._byteList[index].get_bytes()[0]
+	index=self._regName.index('status')
+	return self._byteList[index].get_bit(0)
 
     def get_width(self):
 	# converted to units of us (microseconds)
-	index=self.regName.index('width')
-	return self._byteList[index].get_value()/16
+	index=self._regName.index('width')
+	return self._byteList[index].get_value()/16.0
 
     def set_width(self,shapeTime):
 	# shaping time in us (microseconds)
-	index=self.regName.index('width')
+	index=self._regName.index('width')
 	self._byteList[index].set_value(int(shapeTime*16))
 
     def get_PHA_mode(self): 
 	# 0 is list mode, 1 is PHA
-	index=self.regName.index('control')
-	return self._byteList[index].get_bytes()[0]
+	index=self._regName.index('control')
+	return self._byteList[index].get_bit(0)
 
     def set_PHA_mode(self,value):
-	index=self.regName.index('control')
+	index=self._regName.index('control')
 	if value in [0,1]:
 	    self._byteList[index].set_bit(0,value)
 	else:
 	    raise ValueError('set_PHA_mode value must be 0,1')
 
     def reset(self,value):
-	index=self.regName.index('control')
+	index=self._regName.index('control')
 	self._byteList[index].set_bit(7,value)
+
+    def check_reset(self):
+	index=self._regName.index('control')
+	return self._byteList[index].get_bit(7)
 
     #### Time ####
     def get_enable_livetime_preset(self):
-	index=self.regName.index('control')
-	return self._byteList[index].get_bytes()[2]
+	index=self._regName.index('control')
+	return self._byteList[index].get_bit(2)
 
     def set_enable_livetime_preset(self,value):
-	index=self.regName.index('control')
+	index=self._regName.index('control')
 	if value in [0,1]:
 	    self._byteList[index].set_bit(2,value)
 	else:
@@ -390,83 +409,93 @@ class ControlRegister(object):
 
     def get_livetime_preset(self):
 	#converted to seconds
-	index=self.regName.index('lt_preset')
+	index=self._regName.index('lt_preset')
 	return 0.02*self._byteList[index].get_value()
 
     def set_livetime_preset(self,ltPreset):
 	#ltPreset in seconds
-	index=self.regName.index('lt_preset')
-	self._byteList[index].set_value(ltPreset*50)
+	index=self._regName.index('lt_preset')
+	self._byteList[index].set_value(int(ltPreset*50))
 
     def get_livetime(self):
-	index=self.regName.index('livetime')
+	index=self._regName.index('livetime')
 	return 0.02*self._byteList[index].get_value()
 
     def get_enable_realtime_preset(self):
-	index=self.regName.index('control')
-	return self._byteList[index].get_bytes()[3]
+	index=self._regName.index('control')
+	return self._byteList[index].get_bit(3)
 
     def set_enable_realtime_preset(self,value):
-	index=self.regName.index('control')
+	index=self._regName.index('control')
 	if value in [0,1]:
 	    self._byteList[index].set_bit(3,value)
 	else:
 	    raise ValueError('set_enable_realtime_preset value must be 0,1')
 
+    def get_realtime_preset(self):
+	#converted to seconds
+	index=self._regName.index('rt_preset')
+	return 0.02*self._byteList[index].get_value()
+
+    def set_realtime_preset(self,rtPreset):
+	#ltPreset in seconds
+	index=self._regName.index('rt_preset')
+	self._byteList[index].set_value(int(rtPreset*50))
+
     def get_realtime(self):
-	index=self.regName.index('realtime')
+	index=self._regName.index('realtime')
 	return 0.02*self._byteList[index].get_value()
 
     #### Discriminators ####
     def get_LLD(self):
 	#did not incorporate conversion mess 
-	index=self.regName.index('lld_set')
+	index=self._regName.index('lld_set')
 	return self._byteList[index].get_value()
 
     def set_LLD(self,lldSet):
 	#conversion
-	index=self.regName.index('lld_set')
-	self._byteList[index].set_value()
+	index=self._regName.index('lld_set')
+	self._byteList[index].set_value(lldSet)
 
     def get_ULD(self):
-	index=self.regName.index('uld_set')
+	index=self._regName.index('uld_set')
 	return self._byteList[index].get_value()
 
     def set_ULD(self,uldSetting):
-	index=self.regName.index('uld_set')
+	index=self._regName.index('uld_set')
 	self._byteList[index].set_value(uldSetting)
 
     #### Insight Module ####
     def check_insight_module(self):
 	#high when module has a waveform ready to transmit
-	index=self.regName.index('status')
-	return self._byteList[index].get_bytes()[2]
+	index=self._regName.index('status')
+	return self._byteList[index].get_bit(2)
 
     def get_insight_control(self):
-	index=self.regName.index('insight_ctl')
+	index=self._regName.index('insight_ctl')
 	return self._byteList[index].get_bytes()
 
     def set_insight_control(self,bytestr):
-	index=self.regName.index('insight_ctl')
+	index=self._regName.index('insight_ctl')
 	self._byteList[index].set_bytes(bytestr)
 
     #### Enable Input ####
     def check_enable_input(self):
 	#state of enable input
-	index=self.regName.index('status')
-	return self._byteList[index].get_bytes()[1]
+	index=self._regName.index('status')
+	return self._byteList[index].get_bit(1)
 
     def get_enable_input_control(self):
-	index=self.regName.index('aux_ctl')
+	index=self._regName.index('aux_ctl')
 	return self._byteList[index].get_bytes()
 
     def set_enable_input_control(self,bytestr):
-	index=self.regName.index('aux_ctl')
+	index=self._regName.index('aux_ctl')
 	self._byteList[index].set_bytes(bytestr)
 
     def get_enable_input_count(self):
-	index=self.regName.index('auxE_cnt')
-	return self._byteList[index].get_bytes()
+	index=self._regName.index('auxE_cnt')
+	return self._byteList[index].get_value()
 
 class FPGA(object):
     eP_SEND=8
@@ -511,7 +540,7 @@ class FPGA(object):
         self._controlRegister.set_from_bytes(CR)
         settings=self._controlRegister.get_settings()
         settings['gain_stab_enable']=int(settings['control'][4])
-        settings['hv_actual']=self._controlRegister.get_hv_actual()
+        settings['hv_actual']=self.get_hv()
         settings['fine_gain']=self._controlRegister.get_fine_gain()
         exclude=['control','status','insight_ctl','spare_0','aux_io','aux_ctl','ff_count','aux0_cnt',
                  'aux1_cnt','auxE_cnt','mem_size','mem_start','control2','spare_1']
@@ -544,13 +573,16 @@ class FPGA(object):
     def set_hv(self,volts):
         self._controlRegister.set_hv_actual(volts)
         self.write_control_register()
-        return self._controlRegister.get_hv_actual()
-
+        
     def get_hv(self):
+	self._controlRegister.trigger_hv_ADC(1)
+	self.write_control_register()
+	self._controlRegister.trigger_hv_ADC(0)
+	self.write_control_register()
         return self._controlRegister.get_hv_actual()
 
     def check_HV_ADC(self):
-	return self._controlRegister.get_HV_ADC()
+	return self._controlRegister.check_HV_ADC()
 
     #### Fine Gain ####
     def set_fine_gain(self,value):
@@ -562,6 +594,9 @@ class FPGA(object):
 
     def get_fine_gain(self):
         return self._controlRegister.get_fine_gain()
+
+    def get_fine_gain_set(self):
+        return self._controlRegister.get_fine_gain_set()
 
     #### Gain Stabalization ####
     def enable_gain_stab(self):
@@ -606,7 +641,8 @@ class FPGA(object):
         self._cnct.bulkRead(self.eP_RECV,0,self.TIMEOUT)
 
     def show_data(self):
-#        nBytes=self._controlRegister.get_mem_size()
+#        nBytes=
+#	print self._controlRegister.get_mem_size()
         nBytes=4097
         self._cnct.bulkWrite(self.eP_SEND,self.CMD_SHOWDATA,self.TIMEOUT)
         r=self._cnct.bulkRead(self.eP_RECV,nBytes,self.TIMEOUT)
@@ -619,10 +655,10 @@ class FPGA(object):
 	return self._controlRegister.get_clear_counters()
 
     def set_clear_counters(self,value):
-	self._controlRegister.set_clear_counters(self,value)
+	self._controlRegister.set_clear_counters(value)
 	self.write_control_register()
 
-    def get_fake_ADC(self,value):
+    def get_fake_ADC(self):
 	return self._controlRegister.get_fake_ADC()	
 
     def set_fake_ADC(self,value):
@@ -672,6 +708,9 @@ class FPGA(object):
 	self._controlRegister.reset(0)
 	self.write_control_register
 
+    def check_reset(self):
+	return self._controlRegister.check_reset()
+
     #### Time ####
     def get_enable_livetime_preset(self):
 	return self._controlRegister.get_enable_livetime_preset()
@@ -681,20 +720,27 @@ class FPGA(object):
 	self.write_control_register()
 
     def get_livetime_preset(self):
-	return self._controlRegister.get_livetime_preset(self)
+	return self._controlRegister.get_livetime_preset()
+
+    def set_livetime_preset(self,ltPreset):
+	self._controlRegister.set_livetime_preset(ltPreset)
+	self.write_control_register()
 
     def get_livetime(self):
 	return self._controlRegister.get_livetime()
-
-    def set_livetime_preset(self,ltPreset):
-	self._controlRegister.get_livetime_preset(self,ltPreset)
-	self.write_control_register()
 
     def get_enable_realtime_preset(self):
 	return self._controlRegister.get_enable_realtime_preset()
 
     def set_enable_realtime_preset(self,value):
 	self._controlRegister.set_enable_realtime_preset(value)
+	self.write_control_register()
+
+    def get_realtime_preset(self):
+	return self._controlRegister.get_realtime_preset()
+
+    def set_realtime_preset(self,rtPreset):
+	self._controlRegister.set_realtime_preset(rtPreset)
 	self.write_control_register()
 
     def get_realtime(self):
@@ -725,7 +771,7 @@ class FPGA(object):
 	return self._controlRegister.get_insight_control()
 
     def set_insight_control(self,bytestr):
-	self._controlRegister.set_insight_control()
+	self._controlRegister.set_insight_control(bytestr)
 	self.write_control_register()
 
     #### Enable Input ####
@@ -879,9 +925,8 @@ class DigiBase(object):
     def set_hv(self,volts):
 	#Parameters for stepping voltage
         vmin=0#volts
-        vmax=1200#volts
-
-        vold=self._fpga.get_hv()
+        vmax=1278.75#volts
+        vold=self.get_hv()
         volts=float(volts)
         #print 'Adjusting HV: {0}-->{1}'.format(vold,volts)
         if not (volts >=vmin and volts <=vmax):
@@ -890,10 +935,10 @@ class DigiBase(object):
         return val 
 
     def get_hv(self):
-        return self._fpga.get_hv_actual()
+        return self._fpga.get_hv()
 
     def check_HV_ADC(self):
-	return self._fpga.get_HV_ADC()
+	return self._fpga.check_HV_ADC()
 
     #### Fine Gain ####
     def set_fine_gain(self,value):
@@ -902,6 +947,9 @@ class DigiBase(object):
 
     def get_fine_gain(self):
         return self._fpga.get_fine_gain() 
+
+    def get_fine_gain_set(self):
+        return self._fpga.get_fine_gain_set()
 
     #### Gain Stabalization ####
     def enable_gain_stab(self):
@@ -954,6 +1002,9 @@ class DigiBase(object):
     def reset(self):
 	self._fpga.reset()
 
+    def check_reset(self):
+	return self._fpga.check_reset()
+
     #### Data ####        
     def get_spectrum(self):
         d=self._fpga.show_data()
@@ -972,9 +1023,9 @@ class DigiBase(object):
 	return self._fpga.get_clear_counters()
 
     def set_clear_counters(self,value):
-	self._fpga.set_clear_counters(self,value)
+	self._fpga.set_clear_counters(value)
 
-    def get_fake_ADC(self,value):
+    def get_fake_ADC(self):
 	return self._fpga.get_fake_ADC()	
 
     def set_fake_ADC(self,value):
@@ -987,7 +1038,7 @@ class DigiBase(object):
 	return self._fpga.get_mem_start()
 
     def set_mem_start(self,memStart):
-	self._fpga.set_mem_size(memStart)
+	self._fpga.set_mem_start(memStart)
 
     def get_fifo_count(self):
 	return self._fpga.get_fifo_count()
@@ -1000,10 +1051,10 @@ class DigiBase(object):
 	self._fpga.set_enable_livetime_preset(value)
 
     def get_livetime_preset(self):
-	return self._fpga.get_livetime_preset(self)
+	return self._fpga.get_livetime_preset()
 
     def set_livetime_preset(self,ltPreset):
-	self._fpga.get_livetime_preset(self,ltPreset)
+	self._fpga.set_livetime_preset(ltPreset)
 
     def get_livetime(self):
 	return self._controlRegister.get_livetime()
@@ -1013,6 +1064,12 @@ class DigiBase(object):
 
     def set_enable_realtime_preset(self,value):
 	self._fpga.set_enable_realtime_preset(value)
+
+    def get_realtime_preset(self):
+	return self._fpga.get_realtime_preset()
+
+    def set_realtime_preset(self,rtPreset):
+	self._fpga.set_realtime_preset(rtPreset)
 
     def get_realtime(self):
 	return self._fpga.get_realtime()
@@ -1037,7 +1094,7 @@ class DigiBase(object):
     def get_insight_control(self):
 	return self._fpga.get_insight_control()
 
-    def set_insight_control(self,btyestr):
+    def set_insight_control(self,bytestr):
 	return self._fpga.set_insight_control(bytestr)
 
     #### Enable Input ####
@@ -1136,15 +1193,15 @@ class DigiBaseController(object):
     def disable_offset_stab(self,det=None):
         if det is None:
             for det in self._dets:
-                self._dets[det].set_enable_gain_stab(0)
+                self._dets[det].set_enable_offset_stab(0)
         elif det in self._dets.keys():
-            self._dets[det].set_enable_gain_stab(0)
+            self._dets[det].set_enable_offset_stab(0)
         else:
             raise ValueError('disable_offset_stab called with invalid det: {0}'.format(det))
 
     def get_offset_stab_pars(self,det):
 	if det in self._dets:
-	     self._dets[det].get_offset_stab_pars()
+	     return self._dets[det].get_offset_stab_pars()
 
     def set_offset_stab_pars(self,det,minVal,midVal,maxVal):
         if det in self._dets.keys():
@@ -1161,7 +1218,6 @@ class DigiBaseController(object):
     def getSample(self,duration):
         if not self._acquireFlag:
             self.start_acquisition()
-
         st=time.time()
         self.clear_sample()
         time.sleep(duration)
@@ -1177,10 +1233,9 @@ class DigiBaseController(object):
 
     def clear_counters(self,det):
 	if det in self._dets:
-	    self._dets[det].set_clear_counters(self,1)
-	    self._dets[det].set_clear_counters(self,0)
-	    if self._dets[det].get_clear_counters(self)!=0:
-		raise ValueError('Issue in clearing counters')
+	    self._dets[det].set_clear_counters(1)
+	    os.system('sleep 0.05')
+	    self._dets[det].set_clear_counters(0)
 
     def set_mem_size(self,det,memSize):
 	if det in self._dets:
@@ -1196,7 +1251,7 @@ class DigiBaseController(object):
 
     def set_mem_start(self,det,memStart):
 	if det in self._dets:
-	    self._dets[det].set_mem_size(memStart)
+	    self._dets[det].set_mem_start(memStart)
         else:
             raiseRuntimeError('No Det to set MEMSTART')
 
@@ -1214,13 +1269,13 @@ class DigiBaseController(object):
 
     def check_collect(self,det):
         if det in self._dets.keys():
-            self._dets[det].check_collect()
+            return self._dets[det].check_collect()
         else:
             raiseRuntimeError('No Det to check collection status')
 
     def get_width(self,det):
 	if det in self._dets.keys():
-	    self._dets[det].get_width()
+	    return self._dets[det].get_width()
 
     def set_width(self,det,shapeTime):
 	if det in self._dets:
@@ -1243,6 +1298,10 @@ class DigiBaseController(object):
 	if det in self._dets:
 	    self._dets[det].reset()
 
+    def check_reset(self,det):
+	if det in self._dets:
+	    self._dets[det].check_reset()
+
     def do_startup_checks(self):
         tHold=5
         print 'Waiting {0} seconds for Dets to Stabilize'.format(tHold)
@@ -1259,29 +1318,82 @@ class DigiBaseController(object):
 	if det in self._dets:
 	    self._dets[det].get_enable_livetime_preset()
         else:
-            raiseRuntimeError('No Det to get enable livetime preset')
+            raise RuntimeError('No Det to get enable livetime preset')
 
     def set_enable_livetime_preset(self,det,value):
 	if det in self._dets:
 	    self._dets[det].set_enable_livetime_preset(value)
         else:
-            raiseRuntimeError('No Det to set enable livetime preset')
+            raise RuntimeError('No Det to set enable livetime preset')
+
+    def get_livetime_preset(self,det):
+	if det in self._dets:
+	    self._dets[det].get_livetime_preset()
+	else:
+	    raise RuntimeError('No Det to get livetime preset')
+
+    def set_livetime_preset(self,det,ltPreset):
+	if det in self._dets:
+	    self._dets[det].set_livetime_preset(ltPreset)
+	else:
+	    raise RuntimeError('No Det to set livetime preset')
+
+    def get_enable_realtime_preset(self,det):
+	if det in self._dets:
+	    self._dets[det].get_enable_realtime_preset()
+        else:
+            raise RuntimeError('No Det to get enable realtime preset')
+
+    def set_enable_realtime_preset(self,det,value):
+	if det in self._dets:
+	    self._dets[det].set_enable_realtime_preset(value)
+        else:
+            raise RuntimeError('No Det to set enable realtime preset')
+
+    def get_realtime_preset(self,det):
+	if det in self._dets:
+	    self._dets[det].get_realtime_preset()
+	else:
+	    raise RuntimeError('No Det to get livetime preset')
+
+    def set_realtime_preset(self,det,rtPreset):
+	if det in self._dets:
+	    self._dets[det].set_realtime_preset(rtPreset)
+	else:
+	    raise RuntimeError('No Det to set livetime preset')
 
     #### Insight Module ####
-    #status bit 2, get/set insight ctl
+    # missing get/set insight ctl
+    def check_insight_module(self,det):
+	if det in self._dets:
+	    return self._dets[det].check_insight_module()
 
     #### Enable Input ####
-    #status bit 1,
+    def check_enable_input(self,det):
+	if det in self._dets:
+	    return self._dets[det].check_enable_input()
+
+    def get_enable_input_count(self,det):
+	if det in self._dets:
+	    return self._dets[det].get_enable_input_count()
 
     #### Discriminator ####
-    #get LLD/ULD
+    def get_LLD(self,det):
+	if det in self._dets:
+	    uFG = np.uint32(self._dets[det].get_fine_gain_set() & 0x7FFFFF)>>6
+	    return self._dets[det].get_LLD()*uFG/(0x100000*512)
+
     def set_LLD(self,det,lldBin):
 	if det in self._dets:
-	    uFG = np.uint32(self._dets[det].get_fine_gain() & 0x7FFFFF)>>6
-	    self._dets[det].set_LLD(np.uint32(float(lldBin)*0x100000/float(uFG)*512))
+	    uFG = np.uint32(self._dets[det].get_fine_gain_set() & 0x7FFFFF)>>6
+	    self._dets[det].set_LLD(int(float(lldBin)*0x100000/float(uFG)*512))
+
+    def get_ULD(self,det):
+	if det in self._dets:
+	    return self._dets[det].get_ULD()
 
     def set_ULD(self,det,uldBin):
-	if det in self_dets:
+	if det in self._dets:
 	    self._dets[det].set_ULD(uldBin)
 
 class DigiBaseSpoofer(object):

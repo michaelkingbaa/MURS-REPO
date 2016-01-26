@@ -3,7 +3,6 @@
 Created by S. Henshaw 21 Oct. 2015
 This is the main daq code for running ortec digibases.  It uses multiprocessing as well as queue
 to ensure minimal loss of data and dead time.
-
 '''
 import os
 import sys
@@ -25,7 +24,6 @@ class WriteToFileProcess(mp.Process):
     def __init__(self,q,logger):
         mp.Process.__init__(self)
         self.exit=mp.Event()
-
         self._q=q
         self._logger=logger
         
@@ -48,8 +46,6 @@ class WriteToFileProcess(mp.Process):
         print 'Shutdown initiated'
         self.exit.set()
 
-
-        
 ######################### Main Execution Portion #########################
 ##########################################################################        
 def daq(MESSAGE_Q, **kwargs):
@@ -157,11 +153,9 @@ def daq(MESSAGE_Q, **kwargs):
         dbc=DigiBaseController(producer,topic)
         
     #check for digibases
-    
-        
+            
     dLog=DataLogger(fileName,nLogSamples)
 
-    
     #Getting Detector Settings from .ini file
     with open(config_file,'r') as f:
         data=json.load(f)
@@ -221,12 +215,8 @@ def daq(MESSAGE_Q, **kwargs):
     pFile=WriteToFileProcess(qFile,dLog)
     pFile.start()
 
-    
-    
-
     dbc.start_acquisition()
-    
-    
+        
     #LOOP
     for s in range(nSamples):
         #check for message to make any changes
@@ -237,21 +227,15 @@ def daq(MESSAGE_Q, **kwargs):
         except Queue.Empty:
             pass
         
-        
         #print 'Acquiring Sample {0}'.format(s)
-
         #print 'Acquiring Sample {0}'.format(s)
         sample=dbc.getSample(duration=sample_duration)
         #send data to write file thread
         qFile.put(sample)
-
         #send data to Kafka
         messagedata = json.dumps(sample)
         producer.send_messages(topic, messagedata)
         
-        
-                
-
     print '##########################################################################'
     print '###################### Wrapping up Acquisition ###########################'
     print '##########################################################################'
@@ -264,4 +248,3 @@ def daq(MESSAGE_Q, **kwargs):
     print '##########################################################################'
     print '######################## Acquisition Complete ############################'
     print '##########################################################################'
-    

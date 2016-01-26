@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     
 #    thread = Thread(target = daq, kwargs = dict(spoof_digibase = True, time=10))
-    thread = Thread(target = daq, args=(q_message,), kwargs = dict(time=60))
+    thread = Thread(target = daq, args=(q_message,), kwargs = dict(time=3))
     thread.start()
 
     counter=0
@@ -59,9 +59,7 @@ if __name__ == "__main__":
         if msg.value == 'STOP':
             print 'kafka is really empty'
             break
-        data = json.loads(msg.value)
-        print data['15226068']['time'], counter
-        
+        data = json.loads(msg.value)        
     
         
                     
