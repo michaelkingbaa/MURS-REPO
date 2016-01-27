@@ -3,7 +3,6 @@
 Created by S. Henshaw 21 Oct. 2015
 This is the main daq code for running ortec digibases.  It uses multiprocessing as well as queue
 to ensure minimal loss of data and dead time.
-
 '''
 import os
 import sys

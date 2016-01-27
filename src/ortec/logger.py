@@ -26,21 +26,17 @@ class DataLogger(object):
                 self._fName=fName
             else:
                 raise RuntimeError('Cannot create log file at %s...Location does not exist'%dir)
-
         print 'Saving Data to: ',self._fName
-
         #################### Setting up Class Variables ####################
         self._bufferLength=bufferLength
         self._bufferIndex=0
         self._buffer={}
         self._bufferInitialized=False
 
-
     def initializeBuffer(self,sample):
         if not self._bufferInitialized:
             #print 'initializing buffer'
             self._bufferInitialized=True
-
             for sn in sample.keys():
                 #print 'Creating Group for sn: {0}'.format(sn)
                 self._buffer[sn]={}
@@ -52,18 +48,12 @@ class DataLogger(object):
                     else:
                         #print 'dataType: {0}'.format(type(sample[sn][key]))
                         self._buffer[sn][key]=np.zeros(self._bufferLength,dtype=type(sample[sn][key]))
-                        
-                            
-            
         else:
             raise RuntimeError('Cannot reinitialze buffer in DataLogger...')
-
-
         
     def logSample(self,sample):
         if not self._bufferInitialized:
             self.initializeBuffer(sample)
-
         if self._bufferIndex<self._bufferLength:
             #print 'Adding sample to buffer at position {0}'.format(self._bufferIndex)
             for sn in sample.keys():
@@ -75,9 +65,9 @@ class DataLogger(object):
             self.logSample(sample)
 
     def writeBufferToFile(self):
-        print 'Writing Buffer[:{0}] to File'.format(self._bufferIndex)
-        with h5py.File(self._fName,'a') as f:
-            for sn in self._buffer.keys():
+        print 'Writing Buffer [:{0}] to File'.format(self._bufferIndex)
+	with h5py.File(self._fName,'a') as f:
+	    for sn in self._buffer.keys():
                 if sn not in f:
                     #Adding group to the File
                     grp=f.create_group(sn)
@@ -100,8 +90,7 @@ class DataLogger(object):
                             ds.resize((oldshape[0]+self._bufferIndex,))
                             ds[oldshape[0]:]=value[:self._bufferIndex]
         self._bufferIndex=0
-                            
-            
+
     def cleanup(self):
         self.writeBufferToFile()
 
