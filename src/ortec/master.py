@@ -9,7 +9,7 @@ import datetime
 from kafka import SimpleConsumer, KafkaClient, KafkaConsumer
 from ksigma_thread_manager import ksigma_manager
 from direction_thread_manager import direction_manager
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/avro')
+sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
 from mursavro import mursArrayMessage 
 from ksigma_avro import mursKsigmaMessage
 from direction_avro import mursDirMessage
@@ -45,11 +45,11 @@ if __name__ == "__main__":
     #    thread = Thread(target = daq, args = (daq_message,),kwargs = dict(spoof_digibase = True, time=10))
 
     #read this is later
-    data_schema = '../avro/mursArray.avsc'
+    data_schema = '../messaging/mursArray.avsc'
     data_topic = 'data_messages'
     ksigma_topic = 'ksigma_messages'
     direction_topic = 'direction_messages'
-    ksigma_schema = '../avro/ksigma.avsc'
+    ksigma_schema = '../messaging/ksigma.avsc'
 
     
     thread = Thread(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=20))
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     background_buffer = 8
     event_buffer = 1
     middle_buffer = 2
-    direction_schema = '../avro/direction.avsc'
+    direction_schema = '../messaging/direction.avsc'
     setup_file = 'detector_location.config'
 
     thread_dir = Thread(target = direction_manager, args = (setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema))

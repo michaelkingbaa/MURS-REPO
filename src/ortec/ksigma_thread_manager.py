@@ -5,7 +5,7 @@ from ksigma import ksigma
 import numpy as np
 from kafka.common import LeaderNotAvailableError
 import sys
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/avro')
+sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
 from mursavro import mursArrayMessage
 from ksigma_avro import mursKsigmaMessage
 
