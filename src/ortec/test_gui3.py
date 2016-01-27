@@ -6,8 +6,9 @@ import zmq
 import json
 import sys
 from pyqtgraph.dockarea import *
-from kafka import KafkaConsumer
-
+from kafka import KafkaConsumer, KafkaClient, SimpleConsumer
+sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
+from mursavro import mursArrayMessage 
 
 
 
@@ -106,7 +107,8 @@ def update():
             #spectra.setData(data[key],pen = color_mask[i])
     
         spectraWidget.addItem(pg.PlotCurveItem(data[key], pen=color_mask[i]))
-        countWidget.addItem(pg.PlotCurveItem(total_counts[key],time[key],pen=color_mask[i]))
+        countWidget.addItem(pg.PlotCurveItem(time[key],total_counts[key],pen=color_mask[i]))
+#        countWidget.addItem(pg.PlotCurveItem(total_counts[key],time[key],pen=color_mask[i]))
         #spectrogramWidget.image(
 #        counts.setData(time[key],total_counts[key],pen='r')
         app.processEvents()     
@@ -116,7 +118,8 @@ def get_data():
     msg = consumer.next()
     #    msg = consumer.next(consumer_timeout_ms=100)
     if msg.value != 'STOP':
-        dict = json.loads(msg.value)
+        dict = data_handler.decode(msg.value)
+        #dict = json.loads(msg.value)
         print dict['15226068']['time']
 
     else:
@@ -135,12 +138,12 @@ mainWindow.setWindowTitle('MURS Real Time Data')
 
 d1 = Dock('Specta',size=(500,300)) #spectra plot
 d2 = Dock('Total Counts',size=(500,300)) #total counts plot
-d3 = Dock('Controls',size=(2,4))
-d4 = Dock('Waterfall',size=(300,1200))
+#d3 = Dock('Controls',size=(2,4))
+#d4 = Dock('Waterfall',size=(300,1200))
 area.addDock(d1, 'bottom')
-area.addDock(d2, 'right')
-area.addDock(d3, 'top')
-area.addDock(d4,'left')
+area.addDock(d2, 'top')
+#area.addDock(d3, 'top')
+#area.addDock(d4,'left')
 
 
     
@@ -155,11 +158,11 @@ countWidget = CountsPlotWidget()
 d1.addWidget(spectraWidget)
 d2.addWidget(countWidget)
     
-buttonWidget = ButtonWidget()
-d3.addWidget(buttonWidget)
+#buttonWidget = ButtonWidget()
+#d3.addWidget(buttonWidget)
 
-spectrogramWidget = SpectrogramWidget()
-d4.addWidget(spectrogramWidget)
+#spectrogramWidget = SpectrogramWidget()
+#d4.addWidget(spectrogramWidget)
 
 spectra = spectraWidget.line
 counts = countWidget.line
@@ -171,9 +174,16 @@ time = {}
 total_counts = {}
 
 #KAFKA consumer
-consumer = KafkaConsumer('data_messages',bootstrap_servers=['localhost:9092'])
+wanted_client = 'localhost:9092'
+data_schema = '../messaging/mursArray.avsc'
+data_topic = 'data_messages'
+while not 'data_messages' in KafkaClient(wanted_client).topic_partitions.keys():
+        print 'waiting for data Client'
+        time.sleep(1)
+consumer = KafkaConsumer(data_topic, bootstrap_servers=wanted_client)
 #print consumer.get_partition_offsets('data_messages',0,-1,1)
 
+data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
 
 
 #For sending button messages

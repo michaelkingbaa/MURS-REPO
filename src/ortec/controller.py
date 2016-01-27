@@ -940,7 +940,7 @@ class DigiBase(object):
         return self._fpga.get_hv()
 
     def check_HV_ADC(self):
-    return self._fpga.check_HV_ADC()
+        return self._fpga.check_HV_ADC()
 
     #### Fine Gain ####
     def set_fine_gain(self,value):
@@ -1210,8 +1210,8 @@ class DigiBaseController(object):
             raise ValueError('disable_offset_stab called with invalid det: {0}'.format(det))
 
     def get_offset_stab_pars(self,det):
-    if det in self._dets:
-         return self._dets[det].get_offset_stab_pars()
+        if det in self._dets:
+            return self._dets[det].get_offset_stab_pars()
 
     def set_offset_stab_pars(self,det,minVal,midVal,maxVal):
         if det in self._dets.keys():
