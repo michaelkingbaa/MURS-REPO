@@ -1,5 +1,6 @@
 import sys
-from threading import Thread, Condition
+#from threading import Thread, Condition
+import multiprocessing as mp
 from daq import daq
 from Queue import Queue
 import time
@@ -9,10 +10,12 @@ import datetime
 from kafka import SimpleConsumer, KafkaClient, KafkaConsumer
 from ksigma_thread_manager import ksigma_manager
 from direction_thread_manager import direction_manager
+from calibration_thread import calibration_manager
 sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
 from mursavro import mursArrayMessage 
 from ksigma_avro import mursKsigmaMessage
 from direction_avro import mursDirMessage
+from calibration_avro import mursCalibrationMessage
 
 #Setting up messaging queue for listening to GUI/ can control threads
 port = "5556"
@@ -52,7 +55,7 @@ if __name__ == "__main__":
     ksigma_schema = '../messaging/ksigma.avsc'
 
     
-    thread = Thread(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=50))
+    thread = mp.Process(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=10))
     thread.start()
 
 
@@ -63,7 +66,7 @@ if __name__ == "__main__":
     event_buffer = 2 #number of data acquisitions to determine time frame of k-sigma
     middle_buffer = 2
     
-    thread_ksigma = Thread(target = ksigma_manager, args = (background_buffer, middle_buffer, event_buffer, wanted_client, data_schema, data_topic, ksigma_topic, ksigma_schema))
+    thread_ksigma = mp.Process(target = ksigma_manager, args = (background_buffer, middle_buffer, event_buffer, wanted_client, data_schema, data_topic, ksigma_topic, ksigma_schema))
     thread_ksigma.start()
 
     #read these in at some point
@@ -73,8 +76,14 @@ if __name__ == "__main__":
     direction_schema = '../messaging/direction.avsc'
     setup_file = 'detector_location.config'
 
-    thread_dir = Thread(target = direction_manager, args = (setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema))
+    thread_dir = mp.Process(target = direction_manager, args = (setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema))
     thread_dir.start()
+
+    calibration_schema = '../messaging/calibration.avsc'
+    calibration_topic = 'calibration_messages'
+    
+    #thread_cal = mp.Process(target = calibration_manager, args = (data_schema, data_topic, wanted_client, calibration_schema, calibration_topic))
+    #thread_cal.start()
                                                             
 
     #get clients to listen to Kafka messages
@@ -100,11 +109,18 @@ if __name__ == "__main__":
         time.sleep(1)
         
     consumer_direction = KafkaConsumer(direction_topic, bootstrap_servers = wanted_client)
+
+    #while not calibration_topic in KafkaClient(wanted_client).topic_partitions.keys():
+    #    print 'waiting for calibration Client'
+    #    time.sleep(1)
+        
+    #consumer_calibration = KafkaConsumer(calibration_topic, bootstrap_servers = wanted_client)
     
     #initialize reading of messages -- for testing
     data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
     ksigma_messaging = mursKsigmaMessage(ksigma_schema, ksigma_topic, wanted_client)
     direction_messaging = mursDirMessage(direction_schema, direction_topic, wanted_client)
+    calibration_messaging = mursCalibrationMessage(calibration_schema, calibration_topic, wanted_client)
     
     while True:
 
@@ -137,6 +153,10 @@ if __name__ == "__main__":
         dir_msg = consumer_direction.next()
         direction = direction_messaging.decode(dir_msg.value)
         print direction
+
+        #cal_msg = consumer_calibration.next()
+        #calibration = calibration_messaging.decode(cal_msg.value)
+        #print calibration['status']
         
         #print ksigma['15226068']
         
@@ -147,5 +167,6 @@ if __name__ == "__main__":
     thread.join()
     thread_ksigma.join()
     thread_dir.join()
+    thread_cal.join()
 
 
