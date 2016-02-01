@@ -3,16 +3,16 @@
  "type":"record",
  "name":"MURScalibrationReport",
  "fields":[
-	  {"name": "sensorId","type": "string"},
-	  {"name": "status", "type": "string"},
-     	  {"name": "startTime", "type": "double"},
-     	  {"name": "endTime", "type": "double"},
-     	  {"name": "referenceEnergy", "type": "double"},
-     	  {"name": "referenceChannel", "type": "double"},
-     	  {"name": "referenceChannelUncertainty", "type": "double"},
-     	  {"name": "binEnergies", "type": "double"},
-     	  {"name": "sumSpectrum", "type": "double"},
-     	  {"name": "integrationTime", "type": "double"},
-     	  {"name": "peak", "type": "double"}
+	  {"name": "sensorId","type": ["null","string"],"default":null},
+	  {"name": "status", "type": ["null","string"],"default":null},
+     	  {"name": "startTime", "type": ["null","double"],"default":null},
+     	  {"name": "endTime", "type": ["null","double"],"default":null},
+     	  {"name": "referenceEnergy", "type": ["null","double"],"default":null},
+     	  {"name": "referenceChannel", "type": ["null","double"],"default":null},
+     	  {"name": "referenceChannelUncertainty", "type": ["null","double"],"default":null},
+     	  {"name": "binEnergies", "type": ["null","double"],"default":null},
+	  {"name": "sumSpectrum", "type": {"type": "array", "items":["null","double"],"default":null}},
+     	  {"name": "integrationTime", "type": ["null","double"],"default":null},
+     	  {"name": "peak", "type": ["null","double"],"default":null}
      	  ]
 }

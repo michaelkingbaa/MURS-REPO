@@ -1,6 +1,6 @@
 import logging
 import time
-
+import pickle
 import scipy
 
 from baaHelperMethods import expandSpectrum, makeCalibrationSpline, resolutionChannelsFunction
@@ -38,7 +38,7 @@ class Calibration(object):
         self.integrationTime = integrationTime
         self.peak = peak
 
-
+        
 class PeakTracker:
     """
     Class intended to locate/track a given NORM peak channel location in a gamma
@@ -141,6 +141,8 @@ class PeakTracker:
 #        return calibration
         self.handler.publishMessage(calibration)
 
+
+
     def movementCheck(self, resOut):
         if self.lastPeakLocation is None:
             return
@@ -190,7 +192,7 @@ class PeakTracker:
         """
         Stub for messaging input
         """
-
+        
         # Fish out the inputs required for processSpectrum()
         #timeIn = None
         #realTime = None
@@ -202,7 +204,7 @@ class PeakTracker:
         """
         Method which processes the peak finding effort
         """
-
+        
         if self.beginTime is None:
             self.beginTime = timeIn
 
@@ -279,6 +281,7 @@ class PeakTracker:
                                     status='COUNT_RATE_OUT_OF_BOUNDS')
             # Re-initialize the effort
             self.publishResult(resOut)
+            print resOut
             self.initializeSpectrum(beginTime=timeIn, spectrum=thisSpectrum, realTime=realTime)
             return
 

@@ -28,19 +28,21 @@ def calibration_manager(data_schema, data_topic, wanted_client, calibration_sche
         if msg.value != 'STOP':
 
             dict = data_handler.decode(msg.value)
-            
+
 
             #instatiate calibration objects (one for each detector SN)
             if flag == 0:
-                for i, key in enumerate(dict.keys()):
-                    calibrations[i] = PeakTracker(calibration_handler, key) #ask about other Flags
-                    flag == 1
-            for i, key in ennumerate(dict.keys()):
+                for key in dict.keys():
+                    print 'key is ', key
+                    calibrations.append(PeakTracker(calibration_handler, key)) #ask about other Flags
+                    flag = 1
+            
+            for i, key in enumerate(dict.keys()):
                 calibrations[i].processMessage(dict[key]['time'], dict[key]['realtime'], dict[key]['spectrum'])  #this does calibration and sends message from calibration_handler
 
                 
-    else:
-        exit()
+        else:
+            exit()
 
 
     
