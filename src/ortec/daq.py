@@ -20,9 +20,7 @@ import json
 import zmq
 from kafka import SimpleProducer, KafkaClient
 from kafka.common import LeaderNotAvailableError
-import sys
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
-from mursavro import mursArrayMessage
+from messaging.mursavro import mursArrayMessage
 
 
 class WriteToFileProcess(mp.Process):

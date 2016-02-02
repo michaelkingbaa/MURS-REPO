@@ -4,10 +4,8 @@ import json
 from ksigma import ksigma
 import numpy as np
 from kafka.common import LeaderNotAvailableError
-import sys
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
-from mursavro import mursArrayMessage
-from ksigma_avro import mursKsigmaMessage
+from messaging.mursavro import mursArrayMessage
+from messaging.ksigma_avro import mursKsigmaMessage
 
 
 def ksigma_manager(background_buffer, middle_buffer, event_buffer, wanted_client, data_schema, data_topic, ksigma_topic, ksigma_schema):

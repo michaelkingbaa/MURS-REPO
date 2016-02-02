@@ -4,10 +4,8 @@ import json
 from direction import direction
 import numpy as np
 from kafka.common import LeaderNotAvailableError
-import sys
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
-from mursavro import mursArrayMessage
-from direction_avro import mursDirMessage
+from messaging.mursavro import mursArrayMessage
+from messaging.direction_avro import mursDirMessage
 
 def direction_manager(setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema):
     counter = 0
