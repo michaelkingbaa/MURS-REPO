@@ -43,3 +43,5 @@
   * `vagrant halt context`
   * `vagrant up context`
 
+VM GUI login - user: vagrant, pw: vagrant
+
