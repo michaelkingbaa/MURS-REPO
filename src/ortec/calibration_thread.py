@@ -1,13 +1,10 @@
-import sys
 import time
 import json
 from kafka import  KafkaConsumer, KafkaClient, SimpleProducer
 from kafka.common import LeaderNotAvailableError
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
-from mursavro import mursArrayMessage
-from calibration_avro import mursCalibrationMessage
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/baa_algos')
-from mursPeakTracker import PeakTracker
+from messaging.mursavro import mursArrayMessage
+from messaging.calibration_avro import mursCalibrationMessage
+from baa_algos.mursPeakTracker import PeakTracker
 
 def calibration_manager(data_schema, data_topic, wanted_client, calibration_schema, calibration_topic):
 

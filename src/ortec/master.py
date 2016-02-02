@@ -52,7 +52,7 @@ if __name__ == "__main__":
     ksigma_schema = '../messaging/ksigma.avsc'
 
     
-    thread = mp.Process(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=100))
+    thread = mp.Process(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=10))
     thread.start()
 
 
