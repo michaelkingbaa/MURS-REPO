@@ -1,5 +1,6 @@
 import sys
 import time
+import json
 from kafka import  KafkaConsumer, KafkaClient, SimpleProducer
 from kafka.common import LeaderNotAvailableError
 sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
@@ -20,7 +21,8 @@ def calibration_manager(data_schema, data_topic, wanted_client, calibration_sche
     #initialize reading of messages deserialization
     data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
     calibration_handler = mursCalibrationMessage(calibration_schema, calibration_topic, wanted_client)
-    
+
+    sensor_char_dir = '../baa_algos/digibase-rh/'
     calibrations=[]
     
     for msg in consumer:
@@ -33,8 +35,11 @@ def calibration_manager(data_schema, data_topic, wanted_client, calibration_sche
             #instatiate calibration objects (one for each detector SN)
             if flag == 0:
                 for key in dict.keys():
-                    print 'key is ', key
-                    calibrations.append(PeakTracker(calibration_handler, key)) #ask about other Flags
+                    det_file = sensor_char_dir + key +'.json'
+                    print det_file
+                    with open(det_file) as f:
+                        sens_chars = json.load(f)  
+                    calibrations.append(PeakTracker(calibration_handler, key, sensorCharacterization = sens_chars)) #ask about other Flags
                     flag = 1
             
             for i, key in enumerate(dict.keys()):

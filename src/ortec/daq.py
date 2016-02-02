@@ -252,11 +252,11 @@ def daq(MESSAGE_Q, schema_file, **kwargs):
         sample=dbc.getSample(duration=sample_duration)
 
         #send data to write file thread
-        
+       
         qFile.put(sample)
         
         #send data to Kafka
-
+        
         data_messaging.publishMessage(sample)
         
         #messagedata = json.dumps(sample)

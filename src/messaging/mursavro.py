@@ -44,7 +44,6 @@ class mursArrayMessage:
                 sens["spectrum"] = list(sens["spectrum"])
                 sens["serialnumber"] = key
                 sensArray.append(sens)
-
             # Prepare avro encoder and write to raw bytes
             bytes_writer = io.BytesIO()
             encoder = avro.io.BinaryEncoder(bytes_writer)
