@@ -1,0 +1,18 @@
+{"namespace": "com.baadata.murs.sensor.messages",
+ "name":"Calibration",
+ "type":"record",
+ "name":"MURScalibrationReport",
+ "fields":[
+	  {"name": "sensorId","type": ["null","string"],"default":null},
+	  {"name": "status", "type": ["null","string"],"default":null},
+     	  {"name": "startTime", "type": ["null","double"],"default":null},
+     	  {"name": "endTime", "type": ["null","double"],"default":null},
+     	  {"name": "referenceEnergy", "type": ["null","double"],"default":null},
+     	  {"name": "referenceChannel", "type": ["null","double"],"default":null},
+     	  {"name": "referenceChannelUncertainty", "type": ["null","double"],"default":null},
+     	  {"name": "binEnergies", "type": ["null","double"],"default":null},
+	  {"name": "sumSpectrum", "type": {"type": "array", "items":["null","double"],"default":null}},
+     	  {"name": "integrationTime", "type": ["null","double"],"default":null},
+     	  {"name": "peak", "type": ["null","double"],"default":null}
+     	  ]
+}

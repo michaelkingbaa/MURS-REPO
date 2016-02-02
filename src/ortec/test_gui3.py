@@ -89,7 +89,7 @@ def update():
     if dict == 'STOP':
         exit()
            ###FIGURE OUT HOW TO END NICELY
-    color_mask = ['w','b','g','y','r','p']
+    color_mask = ['w','b','g','y','r','m']
     for i,key in enumerate(dict.keys()):
         if key not in data.keys():
             data[key] = np.ones(1024)

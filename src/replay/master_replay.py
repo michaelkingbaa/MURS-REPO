@@ -1,14 +1,18 @@
 import multiprocessing as mp
-from daq import daq
+from ortec.daq import daq
 from Queue import Queue
 import time
 import zmq
 import json
 import datetime
+import argparse
+import sys
+import copy
 from kafka import SimpleConsumer, KafkaClient, KafkaConsumer
-from ksigma_thread_manager import ksigma_manager
-from direction_thread_manager import direction_manager
-from calibration_thread import calibration_manager
+from mursReplay import mursArrayReplay
+from ortec.ksigma_thread_manager import ksigma_manager
+from ortec.direction_thread_manager import direction_manager
+from ortec.calibration_thread import calibration_manager
 from messaging.mursavro import mursArrayMessage 
 from messaging.ksigma_avro import mursKsigmaMessage
 from messaging.direction_avro import mursDirMessage
@@ -35,6 +39,25 @@ counter=0
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file","-f",default="False",
+                        help="Give HDF5 file to be replayed")
+
+    parser.add_argument("-s", "--speed",default=1.,type=float,help="The replay speed in seconds between messages.")
+    args = parser.parse_args()
+
+    if len(sys.argv) <=1:
+        parser.print_help()
+        exit()
+
+    if args.file == "False":
+        print "No file"
+        exit()
+    file = args.file
+    speed = args.speed
+    print type(speed)
+    
     
     wanted_client = 'localhost:9092'
 
@@ -52,9 +75,11 @@ if __name__ == "__main__":
     ksigma_schema = '../messaging/ksigma.avsc'
 
     
-    thread = mp.Process(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=100))
-    thread.start()
-
+    #call replay
+    murs = mursArrayReplay(file,wanted_client,data_topic)
+    thread_replay = mp.Process(target = murs.replay, args=(speed,))
+    thread_replay.start()
+    
 
     #Start GOLF algorithm
 
@@ -130,7 +155,7 @@ if __name__ == "__main__":
         except zmq.Again as e:
             pass
         
-        
+        print "HERE"
         
         counter+=1
         
@@ -143,8 +168,8 @@ if __name__ == "__main__":
             break
         
         data = data_handler.decode(msg.value)
-        #print data
-        #print counter
+        print data
+        print counter
         msg = consumer_ksigma.next()
         ksigma = ksigma_messaging.decode(msg.value)
         #for key in ksigma.keys():
@@ -154,7 +179,7 @@ if __name__ == "__main__":
         dir_msg = consumer_direction.next()
         direction = direction_messaging.decode(dir_msg.value)
         #print direction
-        print counter
+        #print counter
 
         
         #cal_msg = consumer_calibration.get_message(timeout=0.1)
@@ -167,7 +192,7 @@ if __name__ == "__main__":
         
                     
     
-    thread.join()
+    thread_replay.join()
     thread_ksigma.join()
     thread_dir.join()
    # thread_cal.join()
