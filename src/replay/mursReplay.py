@@ -1,7 +1,10 @@
 __author__ = 'chivers'
 
+import sys
 from h5FileReader import mursH5FileReader as reader
-from messaging.mursavro import mursArrayMessage
+sys.path.append('/Users/baamitch/GitHub/murs/src/messaging')
+#from messaging.mursavro import mursArrayMessage
+from mursavro import mursArrayMessage
 
 class mursArrayReplay:
 

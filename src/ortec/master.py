@@ -9,10 +9,19 @@ import datetime
 from kafka import SimpleConsumer, KafkaClient, KafkaConsumer
 from ksigma_thread_manager import ksigma_manager
 from direction_thread_manager import direction_manager
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
+sys.path.append('/Users/baamitch/GitHub/murs/src/messaging')
 from mursavro import mursArrayMessage 
 from ksigma_avro import mursKsigmaMessage
 from direction_avro import mursDirMessage
+
+###ADDED###
+#sys.path.append('/Users/baamitch/GitHub/murs/src/replay')
+#from h5FileReader import mursH5FileReader as reader
+#from mursReplay import mursArrayReplay
+
+#sys.path.append('/Users/baamitch/Desktop')
+#h5File = 'DataLog_2015-11-23T22-47-48Z.h5' 
+###########
 
 #Setting up messaging queue for listening to GUI/ can control threads
 port = "5556"
@@ -41,17 +50,22 @@ if __name__ == "__main__":
     #DO THIS LATER
     #perform a check to see if Digibases are plugged in 
     #code is written  so that if check is kwargs=(check=True) is run and there are no digibases, queue returns _sentinel    
-    
-    #    thread = Thread(target = daq, args = (daq_message,),kwargs = dict(spoof_digibase = True, time=10))
 
     #read this is later
     data_schema = '../messaging/mursArray.avsc'
+    ksigma_schema = '../messaging/ksigma.avsc'
+    direction_schema = '../messaging/direction.avsc'
     data_topic = 'data_messages'
     ksigma_topic = 'ksigma_messages'
     direction_topic = 'direction_messages'
-    ksigma_schema = '../messaging/ksigma.avsc'
 
-    
+    #sys.path.append('/Users/baamitch/Desktop')
+    #h5File = 'DataLog_2015-11-23T22-47-48Z.h5' 
+
+    # Spoof Data
+    #thread = Thread(target = daq, args = (daq_message,),kwargs = dict(spoof_digibase = True, time=10))
+
+    # Real Data
     thread = Thread(target = daq, args=(daq_message,data_schema,), kwargs = dict(acq_time=50))
     thread.start()
 
@@ -70,7 +84,6 @@ if __name__ == "__main__":
     background_buffer = 8
     event_buffer = 1
     middle_buffer = 2
-    direction_schema = '../messaging/direction.avsc'
     setup_file = 'detector_location.config'
 
     thread_dir = Thread(target = direction_manager, args = (setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema))
@@ -88,7 +101,7 @@ if __name__ == "__main__":
         time.sleep(1)
 
     consumer = KafkaConsumer(data_topic, bootstrap_servers=wanted_client)
-
+    
     while not ksigma_topic in KafkaClient(wanted_client).topic_partitions.keys():
         print 'waiting for ksigma Client'
         time.sleep(1)
@@ -103,6 +116,7 @@ if __name__ == "__main__":
     
     #initialize reading of messages -- for testing
     data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
+    #data_handler = mursArrayReplay(h5File, data_topic, wanted_client)
     ksigma_messaging = mursKsigmaMessage(ksigma_schema, ksigma_topic, wanted_client)
     direction_messaging = mursDirMessage(direction_schema, direction_topic, wanted_client)
     
