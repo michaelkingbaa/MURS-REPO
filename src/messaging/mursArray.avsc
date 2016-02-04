@@ -27,7 +27,7 @@
      {"name": "offset_stab_min", "type": ["null","long"],"default":null},
      {"name": "realtime", "type": ["null","long"],"default":null},
      {"name": "rt_preset", "type": ["null","long"],"default":null},
-     {"name": "spectrum","type":{"type":"array","items":["null","long"],"default":null}},
+     {"name": "spectrum","type":{"type":["null", {"type":"array","items":"long"}],"default":null}},
      {"name": "time", "type": ["null","double"],"default":null},
      {"name": "uld_set", "type": ["null","long"],"default":null},
      {"name": "width", "type": ["null","long"],"default":null}
