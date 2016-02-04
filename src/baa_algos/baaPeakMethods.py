@@ -70,6 +70,10 @@ def fitPeak(spectrum, fitChannelRange, sig0, mu0):
                                                         sigma=scipy.sqrt(y1),
                                                         absolute_sigma=True
                                                         )
+        print x
+        print y
+        print (parameterValues, covarianceEstimate, channelLow, channelHigh)
+
         return parameterValues, covarianceEstimate, channelLow, channelHigh
     except Exception:
         return None, None, None, None
