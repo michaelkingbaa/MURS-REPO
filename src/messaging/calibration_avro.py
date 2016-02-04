@@ -1,4 +1,4 @@
-__author__ = 'chivers'
+__author__ = 'kelley'
 
 
 from kafka import SimpleProducer, KafkaClient
@@ -82,6 +82,7 @@ class mursCalibrationMessage:
             #publish message to topic
             try:
                 self.producer.send_messages(self.topic, self.serialize(arrayDict))
+        
             except LeaderNotAvailableError:
                 time.sleep(1)
                 self.producer.send_messages(self.topic, self.serialize(arrayDict))

@@ -6,7 +6,7 @@
     "type": "record",
     "name": "MURSKsigmaReport",
     "fields": [
-     {"name": "serialnumber","type": "string"},
+     {"name": "serialnumber", "type":"string"},   
      {"name": "time", "type": "double"},
      {"name": "k_stat", "type": "double"}
      ]

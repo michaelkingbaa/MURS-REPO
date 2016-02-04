@@ -43,7 +43,7 @@ class mursKsigmaMessage:
                 sens = arrayDict[key]
                 sens["serialnumber"] = key
                 sensArray.append(sens)
-            # Prepare avro encoder and write to raw bytes
+            #Prepare avro encoder and write to raw bytes
             bytes_writer = io.BytesIO()
             encoder = avro.io.BinaryEncoder(bytes_writer)
             writer.write(sensArray, encoder)

@@ -1,9 +1,11 @@
 import scipy
+from mursAnomalySettings import DEFAULT_BINS as DEFAULT_REBIN
 
 DEFAULT_SETTINGS = {
     'nominalRange': 6.,  # sigma range to search within, by default
     'integrationLimit': 300.,  # in seconds
-    'peakBounds': [220., 260.],  # "good" channel range
+    'peakBounds': [200., 260.],  # "good" channel range
+    #'peakBounds': [220., 260.],  # "good" channel range
     'badPeakBounds': [180., 320.],  # widest possible peak search area
     'countRange': [200., 2000.],  # valid bounds for the average count rate, do not fit
     'widthBounds': [3., 8.],  # "good" bounds for width
@@ -25,6 +27,3 @@ DEFAULT_CHARACTERIZATION = {
     "reference_energy": 1460.83,
     "resolution_coefficients": [0.60927244113046497, 0.72086471661835128, 0.00030386606502753188]
 }
-
-
-DEFAULT_REBIN = 6*scipy.arange(0, 512, 1, dtype=scipy.float64)  # 0 - 3.072 MeV with 6 keV per bin

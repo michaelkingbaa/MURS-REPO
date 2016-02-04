@@ -1,6 +1,6 @@
 import logging
 import time
-import pickle
+
 import scipy
 
 from baaHelperMethods import expandSpectrum, makeCalibrationSpline, resolutionChannelsFunction
@@ -25,7 +25,6 @@ class Calibration(object):
                  sumSpectrum=None,
                  integrationTime=None,
                  peak=None):
-
         self.sensorId = sensorId
         self.status = status
         self.startTime = startTime
@@ -38,7 +37,7 @@ class Calibration(object):
         self.integrationTime = integrationTime
         self.peak = peak
 
-        
+
 class PeakTracker:
     """
     Class intended to locate/track a given NORM peak channel location in a gamma
@@ -54,6 +53,7 @@ class PeakTracker:
                  makeBinEnergies=False,
                  spectralChannels=1024,
                  sensorCharacterization=None,   # dictionary of appropriate format
+                 settings=None,
                  ):
 
         # init members
@@ -70,9 +70,12 @@ class PeakTracker:
 
         self.makeBinEnergies = makeBinEnergies
 
+        if settings is None:
+            settings = DEFAULT_SETTINGS
+
         for key in ['nominalRange', 'integrationLimit', 'peakBounds', 'badPeakBounds', 'countRange',
                     'widthBounds', 'badWidthBounds', 'peakSizeBounds', 'referenceEnergy', 'messageAge']:
-            setattr(self, key, DEFAULT_SETTINGS[key])
+            setattr(self, key, settings[key])
         self.lastTime = None
         self.lastPeakLocation = None
         self.lastPeakWidth = None
@@ -138,10 +141,7 @@ class PeakTracker:
                 binEnergies = makeCalibrationSpline(energies, channels, multiplier=multiplier)(scipy.arange(self.spectralChannels))
                 binEnergies[binEnergies < 0] = 0
                 calibration.binEnergies = binEnergies
-#        return calibration
         self.handler.publishMessage(calibration)
-
-
 
     def movementCheck(self, resOut):
         if self.lastPeakLocation is None:
@@ -153,10 +153,10 @@ class PeakTracker:
             # the peak has moved...
             logging.warn('Times - {0!s}<{1!s}, Detector - {2!s}, '\
                          'Discovered peak has moved farther than expected {3!s} -> {4!s}!'.format(resOut.startTime,
-                                                                                            resOut.endTime,
-                                                                                            self.sensorId,
-                                                                                            self.lastPeakLocation,
-                                                                                            resOut.peak.location))
+                                                                                                  resOut.endTime,
+                                                                                                  self.sensorId,
+                                                                                                  self.lastPeakLocation,
+                                                                                                  resOut.peak.location))
 
         # TODO: publish the appropriate message if this is bad
 
@@ -188,15 +188,15 @@ class PeakTracker:
                                                      resOut.endTime,
                                                      self.sensorId))
 
-    def processMessage(self, timeIn, realTime, thisSpectrum, messageId=None):
+    def processMessage(self, report, messageId=None):
         """
         Stub for messaging input
         """
-        
+
         # Fish out the inputs required for processSpectrum()
-        #timeIn = None
-        #realTime = None
-        #thisSpectrum = None
+        timeIn = None
+        realTime = None
+        thisSpectrum = None
 
         self.processSpectrum(timeIn, realTime, thisSpectrum)
 
@@ -204,7 +204,7 @@ class PeakTracker:
         """
         Method which processes the peak finding effort
         """
-        
+
         if self.beginTime is None:
             self.beginTime = timeIn
 
@@ -281,7 +281,6 @@ class PeakTracker:
                                     status='COUNT_RATE_OUT_OF_BOUNDS')
             # Re-initialize the effort
             self.publishResult(resOut)
-            print resOut
             self.initializeSpectrum(beginTime=timeIn, spectrum=thisSpectrum, realTime=realTime)
             return
 
@@ -291,7 +290,7 @@ class PeakTracker:
             # try a reasonable range from the last location
             eWidth = self.resolutionFunction(self.lastPeakLocation)
             self.searchBounds[0][0] = max(self.lastPeakLocation - self.nominalRange*eWidth, 0)
-            self.searchBounds[0][1] = min(self.lastPeakLocation + self.nominalRange*eWidth, 505)
+            self.searchBounds[0][1] = min(self.lastPeakLocation + self.nominalRange*eWidth, thisSpectrum.size - 5)
         else:
             self.searchBounds[0][0] = None
             self.searchBounds[0][1] = None

@@ -700,8 +700,9 @@ class AveragingTransform(BaseTransform):
                                 t_weights[i] = 1.
 
                         t_coefficients *= t_weights
-            # print t_coefficients
+
             minSig = scipy.amax(scipy.absolute(t_coefficients))
+
             return list(t_chs), list(t_coefficients), list(t_coefficients*t_coefficients), minSig
         else:
             return None, None, None, 1.0
@@ -756,7 +757,12 @@ class AveragingTransform(BaseTransform):
         self.matrix = mat.tocsc()
         self.varianceMatrix = varMat.tocsc()
         # define minimum st. deviation
-        self.minimumStDeviation = scipy.array(minimumStDevs)
+        self.minimumStDeviation = scipy.sqrt(scipy.array(minimumStDevs))
+
+        # TODO: for testing
+        # for i, el in enumerate(self.minimumStDeviation):
+        #     print "element {0:d}, min sig {1:0.4f}".format(i, el)
+
 
     def computeTransform(self, arr):
         if arr.shape[-1] != self.inputChannelSize:
@@ -858,8 +864,17 @@ class Seminorm(object):
         else:
             self.threshDicts = {'DEFAULT': {'base_scale_factor': 1.0, 'minimum_scale': 6.0}}
 
+        if 'threshold' in definitionDict:
+            self.threshold = float(definitionDict['threshold'])
+        else:
+            self.threshold = 1.0
+
+        self.mode = None
         self.setMode(mode)
         self.setTransform(transform)
+
+    def setThreshold(self, newThreshold):
+        self.threshold = float(newThreshold)
 
     def setMode(self, newMode):
         if newMode in self.threshDicts:
@@ -872,9 +887,10 @@ class Seminorm(object):
 
     def updateThresholds(self, newDict):
         for key in newDict:
-            self.threshDicts[key] = {}  # overwrites any old values
+            newElement = {}
             for element, val in newDict[key].iteritems():
-                self.threshDicts[key][element] = val
+                newElement[element] = val
+            self.threshDicts[key] = newElement  # overwrites any old values
         self.setMode(self.mode)
 
     def setTransform(self, transform):
@@ -924,7 +940,7 @@ class Seminorm(object):
 
             adjustedSeminorm = adjustment*rawSeminorm
             scaledValue = adjustedSeminorm/theScale
-            return scaledValue, (scaledValue >= 1.0)
+            return scaledValue, (scaledValue >= self.threshold)
 
 
 class ScaleRatioCalculator(object):
@@ -1028,8 +1044,14 @@ class BaseSpectralAlgorithmParameters(object):
 
         # provide some idea of mode
         self.mode = 'DEFAULT'
+        self.setThreshold(1.0)
 
         raise NotImplementedError
+
+    def setThreshold(self, newThreshold):
+        self.threshold = float(newThreshold)
+        for el in self.seminormList:
+            el.setThreshold(newThreshold)
 
     def setMode(self, newMode):
         self.mode = newMode
@@ -1039,7 +1061,7 @@ class BaseSpectralAlgorithmParameters(object):
     def modifySeminormThresholds(self, inputDictionary):
         for key, val in inputDictionary.iteritems():
             if key in self.seminormIndex:
-                self.seminormList[self.seminormIndex].updateThresholds(val)
+                self.seminormList[self.seminormIndex[key]].updateThresholds(val)
             else:
                 logging.warning("No seminorm corresponding to {}".format(key))
 
@@ -1159,6 +1181,8 @@ class LowCountRateAlgorithmParameters(BaseSpectralAlgorithmParameters):
             self.seminormList.append(Seminorm(el, self.transform, mode=self.mode))
             self.seminormIndex[el['name']] = i
 
+        self.setThreshold(1.0)
+
     def getScaleRatio(self, foreground, background, fgCounts, bgCounts, fgLiveTime, bgLiveTime):
         """
         This overrides the stub in the base class, determines appropriate scale to compare the foreground and
@@ -1273,6 +1297,8 @@ class CoherentSpectralAlgorithmParameters(BaseSpectralAlgorithmParameters):
         for i, el in enumerate(seminormDefinitionList):
             self.seminormList.append(Seminorm(el, self.transform, mode=self.mode))
             self.seminormIndex[el['name']] = i
+
+        self.setThreshold(1.0)
 
     def getScaleRatio(self, foreground, background, fgCounts, bgCounts, fgLiveTime, bgLiveTime):
         """
