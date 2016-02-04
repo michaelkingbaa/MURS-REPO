@@ -1224,6 +1224,7 @@ class DigiBaseController(object):
     def clear_sample(self):
         for det in self._dets.values():
             det.clear_spectrum()
+            #clear_counters(det)
 
     def getSample(self,duration):
         if not self._acquireFlag:

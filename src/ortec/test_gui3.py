@@ -7,8 +7,7 @@ import json
 import sys
 from pyqtgraph.dockarea import *
 from kafka import KafkaConsumer, KafkaClient, SimpleConsumer
-sys.path.append('/Users/nicolekelley/git_repos/murs/src/messaging')
-from mursavro import mursArrayMessage 
+from messaging.mursavro import mursArrayMessage 
 
 
 
