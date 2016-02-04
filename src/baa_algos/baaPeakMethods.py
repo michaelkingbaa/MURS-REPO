@@ -431,6 +431,12 @@ def findOurPeak(spec,
     # First, find all the peaks within the bounds
     peakLocs, deltaPeakLocs, deltaPeakWidths = peakFinder.findProspectivePeaks(spec, bounds[0], bounds[1])
 
+    print "PEAK FINDER RESULTS ****"
+    print peakLocs
+    print deltaPeakLocs
+    print deltaPeakWidths
+
+
     # Now, fit the peaks
     fittedPeaks = []
 
@@ -440,6 +446,10 @@ def findOurPeak(spec,
                                                                                    fitChannelRange,
                                                                                    resolutionInChannels,
                                                                                    pk)
+        print "PEAK FIT RESULTS:"
+        print pk
+        print parameterValues
+
         if parameterValues is not None:
             prospPeak = Peak(location=parameterValues[0],
                              width=parameterValues[1],
@@ -447,6 +457,8 @@ def findOurPeak(spec,
                              locationUncertainty=scipy.sqrt(covarianceEstimate[0][0]),
                              widthUncertainty=scipy.sqrt(covarianceEstimate[1][1]),
                              areaUncertainty=scipy.sqrt(covarianceEstimate[2][2]))
+            print prospPeak
+
             # require that the result is meaningful
             if (prospPeak.width > 0.) and (prospPeak.area > 0.) and \
                     scipy.isreal(prospPeak.locationUncertainty) and \
@@ -454,6 +466,7 @@ def findOurPeak(spec,
                     scipy.isreal(prospPeak.areaUncertainty):
                 prospPeak._setDuration(duration)
                 fittedPeaks.append(prospPeak)
+
 
     result.peaksFound = len(fittedPeaks)
     # sort list in descending order based on area
