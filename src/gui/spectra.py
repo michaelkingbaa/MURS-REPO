@@ -18,72 +18,75 @@ from kafka_global import *
 
 
 class SpectraWidget(pg.PlotWidget):
+    def __init__(self):
+        pg.PlotWidget.__init__(self)
 
-	def __init__(self):
-		pg.PlotWidget.__init__(self)
+        # Enable the plot grid
+        self.showGrid(x=True, y=True)
 
-		# Enable the plot grid
-		self.showGrid(x=True, y=True)
+        # Set the title
+        self.setTitle('Spectra')
 
-		# Set the title
-		self.setTitle('Spectra')
-		
-		# Set the left axis label
-		axis = self.getAxis('left')
-		axis.setLabel('Counts')
-		#axis.setLogMode(True)
-		self.setLogMode(y=True)
+        # Set the left axis label
+        axis = self.getAxis('left')
+        axis.setLabel('Counts')
+        # axis.setLogMode(True)
+        self.setLogMode(y=True)
 
-		# Set the bottom axis label
-		axis = self.getAxis('bottom')
-		axis.setLabel('Channel')
-		#self.line = self.plot()
-		
+        # Set the bottom axis label
+        axis = self.getAxis('bottom')
+        axis.setLabel('Channel')
+
+    # self.line = self.plot()
+
+
 def spectra_update(spectra):
-	dict = get_data()
-	if dict == 'STOP':
-		exit()
-	color_mask = ['w','b','g','y','r','m']
-	
-	for i,key in enumerate(dict.keys()):
-		if key not in data.keys():
-			data[key] = np.zeros(1024)
+    dict = get_data()
+    if dict == 'STOP':
+        exit()
+    color_mask = ['w', 'b', 'g', 'y', 'r', 'm']
 
-		data[key] = np.zeros(1024)
-		data[key] += dict[key]['spectrum']
+    for i, key in enumerate(dict.keys()):
+        if key not in data.keys():
+            data[key] = np.zeros(1024)
 
-		data[key][data[key] == 0] = -1
-		data[key] = np.log10(data[key])
-		data[key] = data[key][:511]
-		
-		if i ==0:
-		    spectra.clear()
-	
-		spectra.addItem(pg.PlotCurveItem(data[key], pen=color_mask[i]))
-		
+        data[key] = np.zeros(1024)
+        data[key] += dict[key]['spectrum']
+
+        data[key][data[key] == 0] = -1
+        data[key] = np.log10(data[key])
+        data[key] = data[key][:511]
+
+        if i == 0:
+            spectra.clear()
+
+        spectra.addItem(pg.PlotCurveItem(data[key], pen=color_mask[i]))
+
+
 def get_data():
-	data_msg = consumer.next()
+    data_msg = consumer.next()
 
-	if data_msg.value != 'STOP':
-		dict = data_handler.decode(data_msg.value)
-	else:
-		return 'STOP'
+    if data_msg.value != 'STOP':
+        dict = data_handler.decode(data_msg.value)
+    else:
+        return 'STOP'
 
-	return dict
-		
+    return dict
+
+
 data = {}
 time = {}
-total_counts = {}		
+total_counts = {}
 
-#KAFKA consumer
-#wanted_client = '192.168.0.101:9092'
-#data_schema = '../messaging/mursArray.avsc'
-#data_topic = 'data_messages'
+# KAFKA consumer
+# wanted_client = '192.168.0.101:9092'
+# data_schema = '../messaging/mursArray.avsc'
+# data_topic = 'data_messages'
 
 while not 'data_messages' in KafkaClient(wanted_client).topic_partitions.keys():
-	print 'waiting for data Client'
-	time.sleep(1)
-	
+    print 'waiting for data Client'
+    time.sleep(1)
+
 consumer = KafkaConsumer(data_topic, bootstrap_servers=wanted_client)
 
 data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
