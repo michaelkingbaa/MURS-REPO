@@ -70,10 +70,8 @@ def fitPeak(spectrum, fitChannelRange, sig0, mu0):
                                                         sigma=scipy.sqrt(y1),
                                                         absolute_sigma=True
                                                         )
-        print x
-        print y
-        print (parameterValues, covarianceEstimate, channelLow, channelHigh)
-
+        
+        
         return parameterValues, covarianceEstimate, channelLow, channelHigh
     except Exception:
         return None, None, None, None
@@ -435,11 +433,7 @@ def findOurPeak(spec,
     # First, find all the peaks within the bounds
     peakLocs, deltaPeakLocs, deltaPeakWidths = peakFinder.findProspectivePeaks(spec, bounds[0], bounds[1])
 
-    print "PEAK FINDER RESULTS ****"
-    print peakLocs
-    print deltaPeakLocs
-    print deltaPeakWidths
-
+    
 
     # Now, fit the peaks
     fittedPeaks = []
@@ -450,10 +444,7 @@ def findOurPeak(spec,
                                                                                    fitChannelRange,
                                                                                    resolutionInChannels,
                                                                                    pk)
-        print "PEAK FIT RESULTS:"
-        print pk
-        print parameterValues
-
+        
         if parameterValues is not None:
             prospPeak = Peak(location=parameterValues[0],
                              width=parameterValues[1],
@@ -461,8 +452,7 @@ def findOurPeak(spec,
                              locationUncertainty=scipy.sqrt(covarianceEstimate[0][0]),
                              widthUncertainty=scipy.sqrt(covarianceEstimate[1][1]),
                              areaUncertainty=scipy.sqrt(covarianceEstimate[2][2]))
-            print prospPeak
-
+            
             # require that the result is meaningful
             if (prospPeak.width > 0.) and (prospPeak.area > 0.) and \
                     scipy.isreal(prospPeak.locationUncertainty) and \

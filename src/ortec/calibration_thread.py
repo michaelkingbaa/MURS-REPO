@@ -1,6 +1,7 @@
 import time
 import json
 import os
+import numpy as np
 from kafka import  KafkaConsumer, KafkaClient, SimpleProducer
 from kafka.common import LeaderNotAvailableError
 from messaging.mursavro import mursArrayMessage
@@ -47,7 +48,7 @@ def calibration_manager(data_schema, data_topic, wanted_client, calibration_sche
 
                 realtime = (data[key]['realtime'] - time_previous[key])*0.02
                 time_previous[key] = data[key]['realtime']
-                calibrations[key].processSpectrum(data[key]['time'], realtime, data[key]['spectrum'])  #this does calibration and sends message from calibration_handler
+                calibrations[key].processSpectrum(data[key]['time'], realtime, np.array(data[key]['spectrum']))  #this does calibration and sends message from calibration_handler
 
                 
         else:

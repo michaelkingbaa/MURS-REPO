@@ -12,7 +12,6 @@
      	  {"name": "referenceChannelUncertainty", "type": ["null","double"],"default":null},
      	  {"name": "binEnergies", "type": ["null", {"type": "array", "items":"double"}],"default":null},
 	  {"name": "sumSpectrum", "type": {"type": "array", "items":["null","double"],"default":null}},
-     	  {"name": "integrationTime", "type": ["null","double"],"default":null},
-     	  {"name": "peak", "type": ["null","double"],"default":null}
+     	  {"name": "integrationTime", "type": ["null","double"],"default":null}
      	  ]
 }
