@@ -130,6 +130,7 @@ Vagrant.configure(2) do |config|
       better_usbfilter_add(vb, context.vm.hostname, "1e10", "3300", "Point Grey Grasshopper3 Camera")
       # Add a USB filter for the xSens GPS/INS
       better_usbfilter_add(vb, context.vm.hostname, "2639", "0017", "xSens MTi-G-700 GPS-INS")
+      better_usbfilter_add(vb, context.vm.hostname, "0403", "d38b", "Xsens USB-serial converter")
     end
     context.vm.provision "shell", inline: <<-SHELL
       sudo apt-get update
