@@ -17,4 +17,3 @@ class mursArrayReplay:
             data =  self.h5File.getDataRecord(i)
             self.mursMessage.publishMessage(data)
             time.sleep(speed)
-        #self.mursMessage.producer.send_messages(self.topic, 'STOP')

@@ -1,4 +1,4 @@
-__author__ = 'kelley'
+__author__ = 'chivers'
 
 
 from kafka import SimpleProducer, KafkaClient
@@ -12,7 +12,7 @@ from kafka.common import LeaderNotAvailableError
 
 import sys
 
-class mursDirMessage:
+class mursGPSMessage:
         
         def __init__(self, schemaFile, topic, client):
             self.topic = topic
@@ -23,7 +23,7 @@ class mursDirMessage:
             try:
                 self.schema = avro.schema.parse(open(schemaFile).read())
             except:
-                print "ERROR: mursDirectionMessage Init: ", sys.exc_info()[0]
+                print "ERROR: mursGPSMessage Init: ", sys.exc_info()[0]
                 raise
         
 
@@ -52,6 +52,8 @@ class mursDirMessage:
         def publishMessage(self, arrayDict):
             
             #publish message to topic
+            print arrayDict
+
             try:
                 self.producer.send_messages(self.topic, self.serialize(arrayDict))
             except LeaderNotAvailableError:

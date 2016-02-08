@@ -67,6 +67,8 @@ if __name__ == "__main__":
     ksigma_topic = 'ksigma_messages'
     direction_topic = 'direction_messages'
     ksigma_schema = '../messaging/ksigma.avsc'
+    gps_schema = '../messaging/mursGPS.avsc'
+    gps_topic = 'gps_messages'
 
     
     #call replay
@@ -104,8 +106,7 @@ if __name__ == "__main__":
                                                             
 
     #get clients to listen to Kafka messages
-    
-        
+
     
     kafka_client = KafkaClient(wanted_client)
     print 'master thinks',kafka_client.topic_partitions.keys()

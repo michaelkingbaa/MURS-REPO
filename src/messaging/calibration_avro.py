@@ -23,7 +23,7 @@ class mursCalibrationMessage:
             try:
                 self.schema = avro.schema.parse(open(schemaFile).read())
             except:
-                print "ERROR: mursArrayMessage Init: ", sys.exc_info()[0]
+                print "ERROR: mursCalibrationMessage Init: ", sys.exc_info()[0]
                 raise
         
 
