@@ -49,13 +49,13 @@ class mursCalibrationMessage:
             if calib_object.referenceChannelUncertainty != None:
                     arrayDict['referenceChannelUncertainty'] = calib_object.referenceChannelUncertainty
             if calib_object.binEnergies != None:
-                    arrayDict['binEnergies'] = calib_object.binEnergies
+                    arrayDict['binEnergies'] = list(calib_object.binEnergies)
             if calib_object.sumSpectrum != None:
                     arrayDict['sumSpectrum'] = list(calib_object.sumSpectrum)
             if calib_object.integrationTime != None:
                     arrayDict['integrationTime'] = calib_object.integrationTime
-            if calib_object.peak != None:
-                    arrayDict['peak'] = calib_object.peak
+            #if calib_object.peak != None:
+            #        arrayDict['peak'] = calib_object.peak
         
             
             #Setup avro datum Writer
