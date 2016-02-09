@@ -156,6 +156,10 @@ int main(void)
 				XsOutputConfiguration quat(XDI_Quaternion, 0);
 				XsOutputConfigurationArray configArray;
 				configArray.push_back(quat);
+				configArray.push_back(XsOutputConfiguration(XDI_UtcTime, 0));
+				configArray.push_back(XsOutputConfiguration(XDI_StatusWord, 0));
+				configArray.push_back(XsOutputConfiguration(XDI_LatLon | XDI_SubFormatFp1632, 4));
+				configArray.push_back(XsOutputConfiguration(XDI_AltitudeEllipsoid| XDI_SubFormatFp1632, 4));
 				if (!device->setOutputConfiguration(configArray))
 				{
 
@@ -167,17 +171,18 @@ int main(void)
 				throw std::runtime_error("Unknown device while configuring. Aborting.");
 			}
 
-			std::cout << "Configuring the device sync..." << std::endl;
+			std::cout << "Configuring sync output..." << std::endl;
             if (device->deviceId().isMtMk4())
 			{
 				XsSyncSettingArray syncArray;
-				XsSyncLine line = XSL_Out1; // SyncOut 1
+				// XsSyncLine line = XSL_Out1; // SyncOut 1
+				XsSyncLine line = XSL_Bi1Out; // SyncOut 1
 				XsSyncFunction function = XSF_IntervalTransitionMeasurement;
 				XsSyncPolarity polarity = XSP_PositivePulse;
 				uint32_t pulseWidth = 1000; // Microseconds
 				int32_t offset = 0; // Microseconds
 				uint16_t skipFirst = 0;
-				uint16_t skipFactor = 400;	// 400Hz clock, results in 1Hz trigger out
+				uint16_t skipFactor = 399;	// 400Hz clock, results in 1Hz trigger out
 				uint16_t clockPeriod = 0;	// Ignored
 				uint8_t triggerOnce = 0;
 				XsSyncSetting sync = XsSyncSetting(line, function, polarity, pulseWidth, offset, skipFirst, skipFactor, clockPeriod, triggerOnce);
@@ -202,6 +207,11 @@ int main(void)
 
 			std::cout << "\nMain loop (press any key to quit)" << std::endl;
 			std::cout << std::string(79, '-') << std::endl;
+
+			XsUtcTime utcTime;
+			int utcFlag = -1;
+			uint32_t status = 0;
+			std::string statusString = std::string("------*");
 			while (!_kbhit())
 			{
 				if (callback.packetAvailable())
@@ -209,10 +219,60 @@ int main(void)
 					// Retrieve a packet
 					XsDataPacket packet = callback.getNextPacket();
 
+					if (packet.containsUtcTime()) {
+						utcTime = packet.utcTime();
+						utcFlag = (int)utcTime.m_valid;
+						// switch (utcTime.m_valid) {
+						// 	case 0:
+						// 		utcFlag = 'X';					// Indicates invalid, fresh data
+						// 	case 1:
+						// 		utcFlag = '1';	// Indicates valid, fresh data
+						// 	case 2:
+						// 		utcFlag = '2';	// Indicates valid, fresh data
+						// 	case 3:
+						// 		utcFlag = '3';	// Indicates valid, fresh data
+						// 	case 4:
+						// 		utcFlag = '4';	// Indicates valid, fresh data
+						// 	default:
+						// 		utcFlag = '?';	// Indicates valid, fresh data
+						// }
+					}
+
+					std::cout << "\r"
+					        << "UTC(" << utcFlag << "): " 
+							<< std::setw(2) << std::setfill('0') << (int)utcTime.m_hour << ":" 
+							<< std::setw(2) << std::setfill('0') <<(int)utcTime.m_minute << ":" 
+							<< std::setw(2) << std::setfill('0') << (int)utcTime.m_second << "." 
+							<< std::setw(3) << std::setfill('0') << utcTime.m_nano/1000000 << ", ";
+
+					if (packet.containsStatus()) {
+						status = packet.status();
+						statusString = std::string("------+");
+						if (status & 0x1) statusString[0] = 'S';	// Bit 0 - Selftest passed
+						if (status & 0x2) statusString[1] = 'F';	// Bit 1 - Filter valid
+						if (status & 0x4) statusString[2] = 'G';	// Bit 2 - GPS fixed
+						if (status & 0x20) statusString[3] = 'Y';		// Bit 5 - Timestamp GPS synced
+						if (status & 0x40) statusString[4] = 'Z';		// Bit 6 - Timestamp clock synced
+						if (status & 0x100) std::cout << "CLIP ACC X! ";	// Bit 8
+						if (status & 0x200) std::cout << "CLIP ACC Y! ";	// Bit 9
+						if (status & 0x400) std::cout << "CLIP ACC Z! ";	// Bit 10
+						if (status & 0x800) std::cout << "CLIP GYR X! ";	// Bit 11
+						if (status & 0x1000) std::cout << "CLIP GYR Y! ";	// Bit 12
+						if (status & 0x2000) std::cout << "CLIP GYR Z! ";	// Bit 13
+						if (status & 0x4000) std::cout << "CLIP MAG X! ";	// Bit 14
+						if (status & 0x8000) std::cout << "CLIP MAG Y! ";	// Bit 15
+						if (status & 0x10000) std::cout << "CLIP MAG Z! ";	// Bit 16
+						if (status & 0x80000) std::cout << '\n';		// Bit 19 - clipping on one or more sensors
+						if (status & 0x400000) statusString[5] = 'O';	// Bit 22 - SyncOut marker
+					}
+					else {
+						statusString[6] = '-';
+					}
+
+					std::cout << "Status: " << statusString << ", ";
 					// Get the quaternion data
 					XsQuaternion quaternion = packet.orientationQuaternion();
-					std::cout << "\r"
-							  << "q0:" << std::setw(5) << std::fixed << std::setprecision(2) << quaternion.m_w
+					std::cout << "q0:" << std::setw(5) << std::fixed << std::setprecision(2) << quaternion.m_w
 							  << ",q1:" << std::setw(5) << std::fixed << std::setprecision(2) << quaternion.m_x
 							  << ",q2:" << std::setw(5) << std::fixed << std::setprecision(2) << quaternion.m_y
 							  << ",q3:" << std::setw(5) << std::fixed << std::setprecision(2) << quaternion.m_z
