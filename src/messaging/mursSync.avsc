@@ -1,0 +1,34 @@
+{"namespace": "com.baadata.murs.sensor.messages",
+ "name":"MURSSyncArray",
+ "type":"array",
+ "items":
+   {
+    "type": "record",
+    "name": "MURSSyncedReport",
+    "fields": [
+     {"name": "Serialnumber","type": ["null","string"],"default":null},
+     {"name": "Spectrum","type":["null", {"type":"array","items":"long"}],"default":null},
+     {"name": "OverflowCounts", "type": ["null","double"],"default":null},	
+     {"name": "Timestamp", "type": ["null","long"],"default":null},
+     {"name": "GaainStabilizationEnabled", "type": ["null","long"],"default":null},
+     {"name": "HighVoltage", "type": ["null","long"],"default":null},
+     {"name": "Livetime", "type": ["null","long"],"default":null},
+     {"name": "Deadtime", "type": ["null","long"],"default":null},
+     
+     {"name": "CalibrationStartTime", "type": ["null","double"],"default":null},
+     {"name": "CalibrationEndTime", "type": ["null","double"],"default":null},
+     {"name": "ReferenceEnergy", "type": ["null","double"],"default":null},
+     {"name": "ReferenceChannel", "type": ["null","double"],"default":null},
+     {"name": "ReferenceChannelUncertainty", "type": ["null","double"],"default":null},
+     {"name": "BinEnergies", "type": ["null", {"type": "array", "items":"double"}],"default":null},
+     {"name": "SummedSpectra", "type": {"type": "array", "items":["null","double"],"default":null}},
+     {"name": "IntegrationTime", "type": ["null","double"],"default":null},
+
+     {"name": "GPSTime", "type": ["null","double"],"default":null},
+     {"name": "Latitude", "type": ["null","double"],"default":null},
+     {"name": "Longitude", "type": ["null","double"],"default":null},
+     {"name": "Elevation", "type": ["null","double"],"default":null}
+
+     ]
+   }
+}

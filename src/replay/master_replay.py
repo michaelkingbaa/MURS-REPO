@@ -69,6 +69,9 @@ if __name__ == "__main__":
     ksigma_schema = '../messaging/ksigma.avsc'
     gps_schema = '../messaging/mursGPS.avsc'
     gps_topic = 'gps_messages'
+    calibration_schema = '../messaging/calibration.avsc'
+    calibration_topic = 'calibration_messages'
+    sensor_characterization_directory = '../baa_algos/digibase-rh/'
 
     
     #call replay
@@ -97,12 +100,10 @@ if __name__ == "__main__":
     thread_dir = mp.Process(target = direction_manager, args = (setup_file, background_buffer, middle_buffer, event_buffer, wanted_client, data_topic, data_schema, direction_topic, direction_schema))
     thread_dir.start()
 
-    #calibration_schema = '../messaging/calibration.avsc'
-    #calibration_topic = 'calibration_messages'
-    #sensor_characterization_directory = '../baa_algos/digibase-rh/'
     
-    #thread_cal = mp.Process(target = calibration_manager, args = (data_schema, data_topic, wanted_client, calibration_schema, calibration_topic, sensor_characterization_directory))
-    #thread_cal.start()
+    
+    thread_cal = mp.Process(target = calibration_manager, args = (data_schema, data_topic, wanted_client, calibration_schema, calibration_topic, sensor_characterization_directory))
+    thread_cal.start()
                                                             
 
     #get clients to listen to Kafka messages
@@ -128,18 +129,19 @@ if __name__ == "__main__":
         
     consumer_direction = KafkaConsumer(direction_topic, bootstrap_servers = wanted_client)
 
-    #while not calibration_topic in KafkaClient(wanted_client).topic_partitions.keys():
-    #    print 'waiting for calibration Client', counter
-    #    counter +=1
-    #    time.sleep(1)
+    while not calibration_topic in KafkaClient(wanted_client).topic_partitions.keys():
+        print 'waiting for calibration Client', counter
+        counter +=1
+        print counter
+        time.sleep(1)
         
-    #consumer_calibration = KafkaConsumer(calibration_topic, bootstrap_servers = wanted_client)
+    consumer_calibration = KafkaConsumer(calibration_topic, bootstrap_servers = wanted_client)
     
     #initialize reading of messages -- for testing
     data_handler = mursArrayMessage(data_schema, data_topic, wanted_client)
     ksigma_messaging = mursKsigmaMessage(ksigma_schema, ksigma_topic, wanted_client)
     direction_messaging = mursDirMessage(direction_schema, direction_topic, wanted_client)
-    #calibration_messaging = mursCalibrationMessage(calibration_schema, calibration_topic, wanted_client)
+    calibration_messaging = mursCalibrationMessage(calibration_schema, calibration_topic, wanted_client)
     
     while True:
 
@@ -164,18 +166,19 @@ if __name__ == "__main__":
             break
         
         data = data_handler.decode(msg.value)
-        #print data
+        print data['15226048']['time']
         #print counter
         msg = consumer_ksigma.next()
         ksigma = ksigma_messaging.decode(msg.value)
+        print ksigma['15226048']['time']
         #for key in ksigma.keys():
         #    print ksigma[key]
 
         #print consumer_direction.pending() ,'pending'
         dir_msg = consumer_direction.next()
         direction = direction_messaging.decode(dir_msg.value)
-        #print direction
-        #print counter
+        print direction['time']
+        print counter
 
         
         #cal_msg = consumer_calibration.next()
@@ -199,6 +202,6 @@ if __name__ == "__main__":
     thread_replay.join()
     thread_ksigma.join()
     thread_dir.join()
-    thread_cal.join()
+    #thread_cal.join()
 
 
