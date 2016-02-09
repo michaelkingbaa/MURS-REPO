@@ -153,13 +153,30 @@ int main(void)
 			std::cout << "Configuring the device..." << std::endl;
 			if (device->deviceId().isMtMk4())
 			{
-				XsOutputConfiguration quat(XDI_Quaternion, 0);
 				XsOutputConfigurationArray configArray;
-				configArray.push_back(quat);
-				configArray.push_back(XsOutputConfiguration(XDI_UtcTime, 0));
-				configArray.push_back(XsOutputConfiguration(XDI_StatusWord, 0));
-				configArray.push_back(XsOutputConfiguration(XDI_LatLon | XDI_SubFormatFp1632, 4));
-				configArray.push_back(XsOutputConfiguration(XDI_AltitudeEllipsoid| XDI_SubFormatFp1632, 4));
+				configArray.push_back(XsOutputConfiguration(XDI_PacketCounter, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_UtcTime, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_SampleTimeCoarse, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_SampleTimeFine, 10));
+
+				configArray.push_back(XsOutputConfiguration(XDI_LatLon | XDI_SubFormatFp1632, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_AltitudeEllipsoid, 10));
+
+				configArray.push_back(XsOutputConfiguration(XDI_Quaternion, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_VelocityXYZ, 10));
+
+				configArray.push_back(XsOutputConfiguration(XDI_DeltaV, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_Acceleration, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_DeltaQ, 10));
+
+				configArray.push_back(XsOutputConfiguration(XDI_GpsSol, 4));
+
+				configArray.push_back(XsOutputConfiguration(XDI_MagneticField, 10));
+
+				configArray.push_back(XsOutputConfiguration(XDI_BaroPressure, 10));
+				configArray.push_back(XsOutputConfiguration(XDI_Temperature, 1));
+
+				configArray.push_back(XsOutputConfiguration(XDI_StatusWord, 10));
 				if (!device->setOutputConfiguration(configArray))
 				{
 
