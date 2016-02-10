@@ -25,7 +25,10 @@ class mursGPSMessage:
             except:
                 print "ERROR: mursGPSMessage Init: ", sys.exc_info()[0]
                 raise
-        
+
+            cons = KafkaConsumer(topic,client)
+            c2 = super(cons)
+
 
 
         def serialize(self, arrayDict1):

@@ -1,11 +1,12 @@
 {"namespace": "com.baadata.murs.sensor.messages",
- "name":"MURSGPS",
  "type":"record",
  "name": "MURSGPSReport",
     "fields": [
      {"name": "time", "type":"double"},
      {"name": "latitude", "type":"double"},
      {"name": "longitude", "type":"double"},
-     {"name": "elevation", "type":"double"}
+     {"name": "elevation", "type":"double"},
+     {"name": "speed", "type":"double"},
+     {"name": "heading", "type":"double"}
      ]
 }
