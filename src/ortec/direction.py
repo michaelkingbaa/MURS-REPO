@@ -57,5 +57,5 @@ class direction():
         #for i in range(6):
         #    print 'the rest', array[i], angles[i]
         meas_angle = high_angle + 2.5* (third_highest - second_highest)/(third_highest + second_highest)*(third_angle - sec_angle)
-        print meas_angle
+        
         return meas_angle
